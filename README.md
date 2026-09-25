@@ -17,13 +17,19 @@ Hoặc tải một file launcher rồi xem trước:
 curl -fsSL https://raw.githubusercontent.com/huynhoainam-sys/universal-linux-office-kit/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh --profile full
 ```
 
+Lệnh đầy đủ, tự bỏ qua hỏi xác nhận:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/huynhoainam-sys/universal-linux-office-kit/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh --profile full --yes
+```
+
 Các profile:
 
 - `minimal`: sửa APT/dpkg, cập nhật hệ thống, công cụ nén, mạng, font và in ấn.
 - `office`: minimal + LibreOffice, PDF, scan, media, browser integration.
-- `full`: office + development, backup, remote desktop, Flatpak cơ bản.
+- `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker và Zoom từ nguồn chính thức.
 
-Tùy chọn an toàn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--report PATH`, `--yes`.
+Tùy chọn an toàn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--report PATH`, `--yes`.
 
 ## Thiết kế
 
@@ -31,12 +37,12 @@ Tùy chọn an toàn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`,
 - Một launcher duy nhất, nhưng mỗi nhóm chức năng là một module có thể bật/tắt.
 - Idempotent: chạy lại không cài lặp và không ghi đè cấu hình người dùng.
 - Có bước repair cho trạng thái cài mới lỗi: `dpkg --configure -a`, `apt-get -f install`, khóa APT stale và cập nhật chỉ khi đã xác nhận.
-- Chỉ dùng package hệ điều hành/Flatpak mặc định. App bên thứ ba phải được người dùng thêm vào profile riêng và pin checksum.
+- App bên thứ ba được lấy từ kho/URL chính thức của Google, Microsoft, Docker và Zoom; có thể bỏ qua bằng `--skip-third-party`.
 - Mỗi lệnh được ghi vào log; cuối lượt tạo report PASS/WARN/FAIL.
 
 ## Giới hạn có chủ ý
 
-Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định; việc cài Office qua Wine/VM là module ngoài, không chạy ngầm và không được giả nhận là Office native.
+Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định; WPS/Office qua Wine/VM và Zalo native không được tự cài vì không có kênh Linux chính thức ổn định để bảo đảm thành công.
 
 File checksum được tham khảo trong thiết kế: `universal-linux-office-kit-v7.3-pro-max-report-printer-optional.sha256` ghi hash `9c7ebdf1af1131eacbf9bd764016e52ce1f4d2c9891bd02274fe7ff185204a28` cho ZIP trỏ tới `/mnt/data/...`. ZIP không có trong máy hiện tại nên chưa thể xác minh hash thực tế.
 

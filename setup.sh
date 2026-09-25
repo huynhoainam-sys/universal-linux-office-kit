@@ -7,6 +7,7 @@ DRY_RUN=0
 ASSUME_YES=0
 NO_REBOOT=0
 SKIP_FLATPAK=0
+SKIP_THIRD_PARTY=0
 REPORT_PATH="${ROOT_DIR}/setup-report.txt"
 LOG_PATH="${ROOT_DIR}/setup.log"
 declare -a WARNINGS=()
@@ -21,6 +22,7 @@ Usage: ./setup.sh [options]
   --yes                          Skip confirmation
   --no-reboot                    Never offer reboot
   --skip-flatpak                 Do not install Flatpak packages
+  --skip-third-party             Do not install official Chrome/Edge/VS Code/Docker/Zoom
   --report PATH                  Write report to PATH
   -h, --help                     Show help
 EOF
@@ -63,9 +65,51 @@ install_apt() {
   apt_run install -y --no-install-recommends "${packages[@]}" || { fail "Không cài được: ${packages[*]}"; return 1; }
 }
 
+install_deb_url() {
+  local name="$1" url="$2" target="${TMPDIR:-/tmp}/${name}.deb"
+  log "Downloading official package: $name"
+  if (( DRY_RUN )); then
+    log "+ curl -fL --retry 3 -o $target $url"
+    log "+ sudo apt-get install -y $target"
+    return 0
+  fi
+  curl -fL --retry 3 --retry-delay 2 -o "$target" "$url" || { fail "Download failed: $name"; return 1; }
+  sudo apt-get install -y "$target" || { fail "Install failed: $name"; return 1; }
+  rm -f "$target"
+}
+
+install_microsoft_repo() {
+  local key_tmp="${TMPDIR:-/tmp}/microsoft.asc"
+  if (( DRY_RUN )); then
+    log "+ configure packages.microsoft.com official repository"
+    return 0
+  fi
+  curl -fsSL --retry 3 https://packages.microsoft.com/keys/microsoft.asc -o "$key_tmp" || { fail 'Microsoft signing key download failed'; return 1; }
+  sudo install -d -m 0755 /etc/apt/keyrings
+  sudo gpg --dearmor --yes -o /etc/apt/keyrings/microsoft.gpg "$key_tmp" || { fail 'Microsoft signing key setup failed'; return 1; }
+  sudo chmod a+r /etc/apt/keyrings/microsoft.gpg
+  sudo tee /etc/apt/sources.list.d/microsoft.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://packages.microsoft.com/repos/code
+Suites: stable
+Components: main
+Architectures: amd64,arm64,armhf
+Signed-By: /etc/apt/keyrings/microsoft.gpg
+EOF
+  sudo tee /etc/apt/sources.list.d/microsoft-edge.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://packages.microsoft.com/repos/edge
+Suites: stable
+Components: main
+Architectures: amd64,arm64,armhf
+Signed-By: /etc/apt/keyrings/microsoft.gpg
+EOF
+  apt_run update || { fail 'Microsoft repository update failed'; return 1; }
+}
+
 module_base() {
   log 'Module: base'
-  install_apt ca-certificates curl wget git unzip zip p7zip-full rsync jq \
+  install_apt ca-certificates curl wget git gpg unzip zip p7zip-full rsync jq \
     bash-completion software-properties-common apt-transport-https \
     network-manager dnsutils ufw htop ncdu || true
   run sudo ufw --force enable || warn 'Không bật được UFW; kiểm tra thủ công'
@@ -105,11 +149,64 @@ module_flatpak() {
   fi
 }
 
+module_third_party() {
+  (( SKIP_THIRD_PARTY )) && { log 'Third-party apps skipped'; return 0; }
+  log 'Module: official third-party apps'
+  local arch
+  arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
+  if [[ "$arch" == amd64 ]]; then
+    install_deb_url google-chrome-stable https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb || true
+    install_deb_url zoom https://zoom.us/client/latest/zoom_amd64.deb || true
+  else
+    warn "Chrome/Zoom direct .deb skipped on architecture: $arch"
+  fi
+  if [[ "$arch" == amd64 || "$arch" == arm64 ]]; then
+    install_microsoft_repo || true
+    install_apt code microsoft-edge-stable || true
+  else
+    warn "VS Code/Edge skipped on architecture: $arch"
+  fi
+  if [[ "${ID:-}" == ubuntu ]]; then
+    local codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
+    if [[ -n "$codename" ]]; then
+      if (( ! DRY_RUN )); then
+        sudo install -d -m 0755 /etc/apt/keyrings
+        curl -fsSL --retry 3 https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc >/dev/null || fail 'Docker signing key download failed'
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+        sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $codename
+Components: stable
+Architectures: $arch
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+        apt_run update || fail 'Docker repository update failed'
+      else
+        log "+ configure Docker official repository for $codename"
+      fi
+      install_apt docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+    else
+      warn 'Ubuntu codename unavailable; Docker official repository skipped'
+    fi
+  else
+    log 'Linux Mint detected: using Mint/Ubuntu repository Docker packages'
+    install_apt docker.io docker-compose-v2 || install_apt docker.io docker-compose || true
+  fi
+  if getent group docker >/dev/null 2>&1 && [[ -n "${USER:-}" ]]; then
+    run sudo usermod -aG docker "$USER" || warn 'Could not add user to docker group'
+    warn 'Log out and log in again before using Docker without sudo'
+  fi
+}
+
 verify() {
   log 'Verification'
   local item
   for item in curl git libreoffice ffmpeg ufw; do
     if command -v "$item" >/dev/null 2>&1; then log "PASS: $item"; else warn "Thiếu hoặc chưa có lệnh: $item"; fi
+  done
+  for item in google-chrome microsoft-edge code docker zoom; do
+    command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Optional app not found: $item"
   done
   if command -v dpkg >/dev/null; then
     local broken
@@ -144,6 +241,7 @@ main() {
       --yes) ASSUME_YES=1; shift ;;
       --no-reboot) NO_REBOOT=1; shift ;;
       --skip-flatpak) SKIP_FLATPAK=1; shift ;;
+      --skip-third-party) SKIP_THIRD_PARTY=1; shift ;;
       --report) REPORT_PATH="${2:?Missing report path}"; shift 2 ;;
       -h|--help) usage; return 0 ;;
       *) usage >&2; return 2 ;;
@@ -165,6 +263,7 @@ main() {
     module_dev
     module_remote
     module_flatpak
+    module_third_party
   fi
   verify
   write_report
