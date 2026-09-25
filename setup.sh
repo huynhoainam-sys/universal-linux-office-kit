@@ -157,8 +157,11 @@ module_third_party() {
   if [[ "$arch" == amd64 ]]; then
     install_deb_url google-chrome-stable https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb || true
     install_deb_url zoom https://zoom.us/client/latest/zoom_amd64.deb || true
+    # Current official WPS Linux Deb URL, discovered from the vendor's Linux page.
+    # Update this single value when WPS publishes a new build.
+    install_deb_url wps-office https://wdl1.pcfg.cache.wpscdn.com/wpsdl/wpsoffice/download/linux/11723/wps-office_11.1.0.11723.XA_amd64.deb || true
   else
-    warn "Chrome/Zoom direct .deb skipped on architecture: $arch"
+    warn "Chrome/Zoom/WPS direct .deb skipped on architecture: $arch"
   fi
   if [[ "$arch" == amd64 || "$arch" == arm64 ]]; then
     install_microsoft_repo || true
@@ -205,7 +208,7 @@ verify() {
   for item in curl git libreoffice ffmpeg ufw; do
     if command -v "$item" >/dev/null 2>&1; then log "PASS: $item"; else warn "Thiếu hoặc chưa có lệnh: $item"; fi
   done
-  for item in google-chrome microsoft-edge code docker zoom; do
+  for item in google-chrome microsoft-edge code docker zoom wps; do
     command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Optional app not found: $item"
   done
   if command -v dpkg >/dev/null; then

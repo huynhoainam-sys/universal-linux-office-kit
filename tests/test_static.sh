@@ -14,5 +14,6 @@ grep -q 'google-chrome-stable_current_amd64.deb' "$ROOT/setup.sh" || fail 'Chrom
 grep -q 'microsoft-edge.sources' "$ROOT/setup.sh" || fail 'Edge repository missing'
 grep -q 'docker-ce' "$ROOT/setup.sh" || fail 'Docker installer missing'
 grep -q 'zoom.us/client/latest' "$ROOT/setup.sh" || fail 'Zoom installer missing'
+grep -q 'wps-office_11.1.0.11723.XA_amd64.deb' "$ROOT/setup.sh" || fail 'WPS installer missing'
 if command -v bash >/dev/null; then bash -n "$ROOT/setup.sh"; fi
 echo 'PASS: static checks'

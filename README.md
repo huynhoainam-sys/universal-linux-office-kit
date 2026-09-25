@@ -66,6 +66,7 @@ Tùy chọn an toàn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`,
 | Visual Studio Code | Lập trình, chỉnh sửa code, terminal và extension | Kho Microsoft chính thức |
 | Docker Engine + Compose | Container, môi trường dev và triển khai dịch vụ | Kho Docker trên Ubuntu; gói distro trên Mint |
 | Zoom | Họp trực tuyến | `.deb` chính thức; chỉ x86_64 |
+| WPS Office | Writer, Spreadsheet, Presentation và PDF; gần giao diện Microsoft Office | `.deb` chính thức từ WPS; chỉ x86_64 |
 | Remmina + RDP/VNC | Điều khiển máy Windows/Linux từ xa | Kho Ubuntu/Mint |
 | OpenSSH client | Kết nối server và copy file qua SSH | Kho Ubuntu/Mint |
 | Python, pip, venv, build-essential | Lập trình, automation và biên dịch package | Kho Ubuntu/Mint |
@@ -74,7 +75,6 @@ Tùy chọn an toàn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`,
 ### Các app chưa tự cài
 
 - Microsoft Office desktop: không có bản Linux native được Microsoft hỗ trợ; dùng LibreOffice hoặc Microsoft 365 web.
-- WPS Office: có bản Linux nhưng URL/phiên bản phân phối thay đổi; chưa đưa vào luồng mặc định để tránh cài nhầm package không kiểm chứng.
 - Zalo native: không có package Linux chính thức ổn định; không giả nhận là đã cài.
 - AnyDesk, VirtualBox, Discord, Slack, OBS, Kdenlive: có thể bổ sung thành module riêng sau khi chốt danh sách và chính sách nguồn của máy.
 
