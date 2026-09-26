@@ -104,6 +104,23 @@ Tra model máy in trên [Canon Việt Nam](https://vn.canon/en/support), tải g
 
 Gói UFR II chỉ cài khi cung cấp archive; tránh áp nhầm driver cho máy Canon dùng CAPT hoặc driver khác. Script không tự thêm máy in vì cần địa chỉ IP/USB và model cụ thể.
 
+#### Thiết lập khổ giấy và in nhanh
+
+Sau khi cài driver, mở **Cài đặt → Máy in → Thêm máy in**, chọn máy Canon qua USB hoặc địa chỉ IP, rồi chọn đúng model/driver **Canon UFR II**. Đặt giấy trong khay máy và khổ giấy trong phần **Tùy chọn máy in** cùng một loại (thường là A4). Không đổi khổ của mọi máy in trong lúc chạy bộ cài vì mỗi máy có thể dùng giấy khác nhau.
+
+Nếu muốn đặt A4 mặc định **chỉ cho tài khoản đang dùng**, kiểm tra tên máy in rồi chạy:
+
+```bash
+lpstat -e                       # liệt kê tên hàng đợi máy in
+lpoptions -p TEN_MAY_IN -l     # xem các khổ giấy máy hỗ trợ
+lpoptions -p TEN_MAY_IN -o media=A4
+lpoptions -p TEN_MAY_IN        # kiểm tra lại tùy chọn
+```
+
+Thay `TEN_MAY_IN` bằng tên chính xác từ `lpstat -e`. Nếu máy không hỗ trợ A4, chọn khổ xuất hiện trong danh sách `lpoptions -l`. Để in một tệp PDF với khổ A4 mà không đổi mặc định: `lp -d TEN_MAY_IN -o media=A4 ten-file.pdf`. Trong LibreOffice/GenOffice, kiểm tra **khổ trang của tài liệu** và **khổ giấy trong hộp thoại In** đều là A4 trước khi bấm In; nếu máy hỏi chọn khay, chọn khay đang chứa giấy A4. Có thể in trang thử từ giao diện Máy in để kiểm tra trước khi in tài liệu thật.
+
+Nếu in PDF lúc A4 lúc A5, dùng `./print-paper.sh TEN_MAY_IN file.pdf`. Script đọc khổ từng trang rồi gửi lệnh in với `media=A4` hoặc `media=A5`; không đổi khổ mặc định. Chạy thêm `--dry-run` để xem trước. File gồm lẫn A4/A5 hoặc khổ khác sẽ dừng và báo rõ để tránh in sai giấy. Với DOCX/XLSX, mở bằng ứng dụng văn phòng và chọn đúng khổ trong hộp thoại In.
+
 ### Chống cài trùng
 
 APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua tải `.deb` nếu đã có ứng dụng; bộ gõ giữ nguyên IBus/Fcitx5 Unikey đang dùng. Zalo hiện có nhưng chưa được kit xác nhận là bản full sẽ được cập nhật đúng một lần; các lần chạy sau bỏ qua. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
