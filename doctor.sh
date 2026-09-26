@@ -33,6 +33,11 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
     if has_command "$app"; then status "$app" PASS "$(command -v "$app")";
     else status "$app" WARN 'not found'; fi
   done
+  if has_package genoffice || has_command genoffice; then
+    status 'GenOffice' PASS 'installed'
+  else
+    status 'GenOffice' OPTIONAL 'office/full profile; amd64 and glibc 2.34+'
+  fi
   if has_package fcitx5-unikey; then
     status 'Vietnamese input' PASS 'Fcitx5 Unikey installed'
     if grep -qx 'Name=unikey' "${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" 2>/dev/null; then

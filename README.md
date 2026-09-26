@@ -28,7 +28,7 @@ curl -fsSL https://raw.githubusercontent.com/huynhoainam-sys/universal-linux-off
 Các profile:
 
 - `minimal`: sửa APT/dpkg, cập nhật hệ thống, công cụ nén, mạng, font và in ấn.
-- `office`: minimal + LibreOffice, PDF, scan, media, browser integration.
+- `office`: minimal + LibreOffice, PDF, scan, media, browser integration và GenOffice trên máy tương thích.
 - `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker, Zoom và Zalo Linux bản full.
 
 Tùy chọn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
@@ -51,6 +51,7 @@ Tùy chọn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-
 | App/gói | Công dụng |
 |---|---|
 | LibreOffice Writer/Calc/Impress | Thay Word/Excel/PowerPoint cho tài liệu, bảng tính và trình chiếu |
+| GenOffice | Bộ soạn thảo AI cho DOCX/XLSX/PPTX/PDF; tải `.deb` từ release chính thức trên Ubuntu/Mint amd64 với glibc 2.34+. Bỏ qua nếu đã cài hoặc dùng `--skip-third-party`. |
 | `libreoffice-l10n-vi`, `libreoffice-help-vi` | Giao diện và trợ giúp tiếng Việt |
 | Hunspell/Hyphen/MyThes tiếng Việt | Kiểm tra chính tả, ngắt dòng và từ điển |
 | Evince, Poppler | Đọc, trích xuất và xử lý PDF |
@@ -105,7 +106,7 @@ Gói UFR II chỉ cài khi cung cấp archive; tránh áp nhầm driver cho máy
 
 ### Chống cài trùng
 
-APT tự giữ các gói đã cài. Chrome, WPS và Zoom bỏ qua tải `.deb` nếu package đã có; bộ gõ giữ nguyên IBus/Fcitx5 Unikey đang dùng. Zalo hiện có nhưng chưa được kit xác nhận là bản full sẽ được cập nhật đúng một lần; các lần chạy sau bỏ qua. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
+APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua tải `.deb` nếu đã có ứng dụng; bộ gõ giữ nguyên IBus/Fcitx5 Unikey đang dùng. Zalo hiện có nhưng chưa được kit xác nhận là bản full sẽ được cập nhật đúng một lần; các lần chạy sau bỏ qua. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
 
 ## Thiết kế
 
@@ -113,7 +114,7 @@ APT tự giữ các gói đã cài. Chrome, WPS và Zoom bỏ qua tải `.deb` n
 - Một launcher duy nhất, nhưng mỗi nhóm chức năng là một module có thể bật/tắt.
 - Idempotent: chạy lại không cài lặp và không ghi đè cấu hình người dùng.
 - Có bước repair cho trạng thái cài mới lỗi: `dpkg --configure -a`, `apt-get -f install`, khóa APT stale và cập nhật chỉ khi đã xác nhận.
-- App bên thứ ba được lấy từ kho/URL chính thức của Google, Microsoft, Docker và Zoom; có thể bỏ qua bằng `--skip-third-party`.
+- App bên thứ ba được lấy từ kho/URL chính thức của GenOffice, Google, Microsoft, Docker và Zoom; có thể bỏ qua bằng `--skip-third-party`.
 - Mỗi lệnh được ghi vào log; cuối lượt tạo report PASS/WARN/FAIL.
 
 ## Giới hạn có chủ ý

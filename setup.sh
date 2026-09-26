@@ -24,7 +24,7 @@ Usage: ./setup.sh [options]
   --yes                          Skip confirmation
   --no-reboot                    Never offer reboot
   --skip-flatpak                 Do not install Flatpak packages
-  --skip-third-party             Do not install Chrome/Edge/VS Code/Docker/Zoom/Zalo
+  --skip-third-party             Do not install GenOffice/Chrome/Edge/VS Code/Docker/Zoom/Zalo
   --canon-ufrii-archive PATH     Install Canon UFR II from official downloaded .tar.gz
   --fix-unikey                  Repair only the Vietnamese input method for this user
   --report PATH                  Write report to PATH
@@ -141,6 +141,71 @@ module_office() {
   configure_office_fonts
   module_vietnamese_input
   module_canon_ufrii || true
+}
+
+module_genoffice() {
+  (( SKIP_THIRD_PARTY )) && { log 'GenOffice skipped with third-party apps'; return 0; }
+  log 'Module: GenOffice'
+  if (( ! DRY_RUN )) && { package_installed genoffice || command -v genoffice >/dev/null 2>&1; }; then
+    log 'GenOffice already installed; skipping duplicate installer'
+    return 0
+  fi
+  local arch glibc_version release_url dir metadata asset_url digest deb pkg deb_arch
+  arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
+  [[ "$arch" == amd64 ]] || { warn "GenOffice requires amd64; skipped on $arch"; return 0; }
+  glibc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
+  if [[ -z "$glibc_version" ]] || ! dpkg --compare-versions "$glibc_version" ge 2.34; then
+    warn "GenOffice requires glibc 2.34 or newer; found ${glibc_version:-unknown}"
+    return 0
+  fi
+  release_url='https://api.github.com/repos/genspark-ai/genoffice/releases/latest'
+  if (( DRY_RUN )); then
+    log "+ get latest GenOffice release from $release_url; verify amd64 .deb; sudo apt-get install -y ./genoffice_<version>_amd64.deb"
+    return 0
+  fi
+  command -v jq >/dev/null || { warn 'GenOffice requires jq to inspect release metadata'; return 0; }
+  dir="$(mktemp -d)" || { warn 'Could not create GenOffice temporary directory'; return 0; }
+  metadata="$dir/release.json"
+  deb="$dir/genoffice_amd64.deb"
+  if ! curl -fsSL --retry 3 "$release_url" -o "$metadata"; then
+    rm -rf -- "$dir"
+    warn 'Could not read GenOffice release metadata'
+    return 0
+  fi
+  asset_url="$(jq -er '[.assets[] | select(.name | test("^genoffice_[^/]+_amd64[.]deb$"))] | if length == 1 then .[0].browser_download_url else empty end' "$metadata" 2>/dev/null)" || {
+    rm -rf -- "$dir"
+    warn 'Latest GenOffice release does not have exactly one amd64 .deb asset'
+    return 0
+  }
+  [[ "$asset_url" == https://github.com/genspark-ai/genoffice/releases/download/* ]] || {
+    rm -rf -- "$dir"
+    warn 'GenOffice asset URL is not from the official GitHub repository'
+    return 0
+  }
+  digest="$(jq -r --arg url "$asset_url" '.assets[] | select(.browser_download_url == $url) | .digest // empty' "$metadata")"
+  if ! curl -fL --retry 3 --retry-delay 2 "$asset_url" -o "$deb"; then
+    rm -rf -- "$dir"
+    warn 'GenOffice download failed'
+    return 0
+  fi
+  if [[ "$digest" == sha256:* ]] && [[ "${digest#sha256:}" != "$(sha256sum "$deb" | awk '{print $1}')" ]]; then
+    rm -rf -- "$dir"
+    warn 'GenOffice SHA-256 does not match release metadata'
+    return 0
+  fi
+  pkg="$(dpkg-deb -f "$deb" Package 2>/dev/null || true)"
+  deb_arch="$(dpkg-deb -f "$deb" Architecture 2>/dev/null || true)"
+  if [[ "$pkg" != genoffice || "$deb_arch" != amd64 ]]; then
+    rm -rf -- "$dir"
+    warn "GenOffice package metadata mismatch: $pkg/$deb_arch"
+    return 0
+  fi
+  if sudo apt-get install -y "$deb"; then
+    log 'PASS: GenOffice installed'
+  else
+    warn 'GenOffice .deb installation failed'
+  fi
+  rm -rf -- "$dir"
 }
 
 configure_office_fonts() {
@@ -488,6 +553,9 @@ verify() {
     for item in flameshot thunderbird pdfarranger libreoffice ffmpeg; do
       command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Office app not found: $item"
     done
+    if (( ! SKIP_THIRD_PARTY )); then
+      package_installed genoffice && log 'PASS: GenOffice' || warn 'Optional app not found: GenOffice'
+    fi
     if dpkg-query -W -f='${Status}' ibus-unikey fcitx5-unikey 2>/dev/null | grep -q 'install ok installed'; then
       log 'PASS: Vietnamese input package installed'
     else
@@ -562,6 +630,7 @@ main() {
   if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
     module_office
     module_media
+    module_genoffice
   fi
   if [[ "$PROFILE" == full ]]; then
     module_dev
