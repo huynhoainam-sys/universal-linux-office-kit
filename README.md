@@ -119,7 +119,7 @@ lpoptions -p TEN_MAY_IN        # kiểm tra lại tùy chọn
 
 Thay `TEN_MAY_IN` bằng tên chính xác từ `lpstat -e`. Nếu máy không hỗ trợ A4, chọn khổ xuất hiện trong danh sách `lpoptions -l`. Để in một tệp PDF với khổ A4 mà không đổi mặc định: `lp -d TEN_MAY_IN -o media=A4 ten-file.pdf`. Trong LibreOffice/GenOffice, kiểm tra **khổ trang của tài liệu** và **khổ giấy trong hộp thoại In** đều là A4 trước khi bấm In; nếu máy hỏi chọn khay, chọn khay đang chứa giấy A4. Có thể in trang thử từ giao diện Máy in để kiểm tra trước khi in tài liệu thật.
 
-Nếu in PDF lúc A4 lúc A5, dùng `./print-paper.sh TEN_MAY_IN file.pdf`. Script đọc khổ từng trang rồi gửi lệnh in với `media=A4` hoặc `media=A5`; không đổi khổ mặc định. Chạy thêm `--dry-run` để xem trước. File gồm lẫn A4/A5 hoặc khổ khác sẽ dừng và báo rõ để tránh in sai giấy. Với DOCX/XLSX, mở bằng ứng dụng văn phòng và chọn đúng khổ trong hộp thoại In.
+Nếu in PDF lúc A4 lúc A5, dùng `bash print-paper.sh TEN_MAY_IN file.pdf`. Script đọc khổ từng trang rồi gửi lệnh in với `media=A4` hoặc `media=A5`; không đổi khổ mặc định. Chạy thêm `--dry-run` để xem trước. File gồm lẫn A4/A5 hoặc khổ khác sẽ dừng và báo rõ để tránh in sai giấy. Với DOCX/XLSX, mở bằng ứng dụng văn phòng và chọn đúng khổ trong hộp thoại In.
 
 ### Chống cài trùng
 

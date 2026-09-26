@@ -4,7 +4,7 @@ set -Eeuo pipefail
 usage() {
   cat <<'EOF'
 In PDF theo khổ trang A4/A5, không đổi mặc định của máy in.
-  ./print-paper.sh TEN_MAY_IN file.pdf [--dry-run]
+  bash print-paper.sh TEN_MAY_IN file.pdf [--dry-run]
 Xem tên máy in: lpstat -e
 EOF
 }
