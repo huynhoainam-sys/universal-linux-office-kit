@@ -8,6 +8,8 @@ ASSUME_YES=0
 NO_REBOOT=0
 SKIP_FLATPAK=0
 SKIP_THIRD_PARTY=0
+CANON_UFRII_ARCHIVE=''
+FIX_UNIKEY=0
 REPORT_PATH="${ROOT_DIR}/setup-report.txt"
 LOG_PATH="${ROOT_DIR}/setup.log"
 declare -a WARNINGS=()
@@ -22,7 +24,9 @@ Usage: ./setup.sh [options]
   --yes                          Skip confirmation
   --no-reboot                    Never offer reboot
   --skip-flatpak                 Do not install Flatpak packages
-  --skip-third-party             Do not install official Chrome/Edge/VS Code/Docker/Zoom
+  --skip-third-party             Do not install Chrome/Edge/VS Code/Docker/Zoom/Zalo
+  --canon-ufrii-archive PATH     Install Canon UFR II from official downloaded .tar.gz
+  --fix-unikey                  Repair only the Vietnamese input method for this user
   --report PATH                  Write report to PATH
   -h, --help                     Show help
 EOF
@@ -41,6 +45,7 @@ run() {
 apt_run() { run sudo apt-get "$@"; }
 
 require_platform() {
+  [[ "$EUID" -ne 0 ]] || { fail 'Chạy ./setup.sh bằng tài khoản người dùng, không dùng sudo; script sẽ gọi sudo khi cần'; return 1; }
   [[ -r /etc/os-release ]] || { fail 'Không đọc được /etc/os-release'; return 1; }
   # shellcheck disable=SC1091
   source /etc/os-release
@@ -65,8 +70,16 @@ install_apt() {
   apt_run install -y --no-install-recommends "${packages[@]}" || { fail "Không cài được: ${packages[*]}"; return 1; }
 }
 
+package_installed() {
+  [[ "$(dpkg-query -W -f='${Status}' "$1" 2>/dev/null || true)" == 'install ok installed' ]]
+}
+
 install_deb_url() {
   local name="$1" url="$2" target="${TMPDIR:-/tmp}/${name}.deb"
+  if (( ! DRY_RUN )) && package_installed "$name"; then
+    log "Already installed: $name; skipping download"
+    return 0
+  fi
   log "Downloading official package: $name"
   if (( DRY_RUN )); then
     log "+ curl -fL --retry 3 -o $target $url"
@@ -113,6 +126,8 @@ module_base() {
     bash-completion software-properties-common apt-transport-https \
     network-manager dnsutils ufw htop ncdu || true
   run sudo ufw --force enable || warn 'Không bật được UFW; kiểm tra thủ công'
+  install_apt xdg-utils cifs-utils smbclient gvfs-backends \
+    openvpn network-manager-openvpn network-manager-openvpn-gnome || true
 }
 
 module_office() {
@@ -120,18 +135,235 @@ module_office() {
   install_apt libreoffice libreoffice-l10n-vi libreoffice-help-vi \
     hunspell-vi hyphen-vi mythes-vi evince poppler-utils \
     simple-scan cups system-config-printer || true
+  install_apt libreoffice-gtk3 thunderbird pdfarranger || true
+  install_apt fonts-crosextra-carlito fonts-crosextra-caladea \
+    fonts-liberation2 fonts-noto-color-emoji || true
+  configure_office_fonts
+  module_vietnamese_input
+  module_canon_ufrii || true
+}
+
+configure_office_fonts() {
+  log 'Module: Office-compatible font aliases'
+  local dir="${XDG_CONFIG_HOME:-$HOME/.config}/fontconfig/conf.d" target
+  target="$dir/60-ulok-office-aliases.conf"
+  if (( DRY_RUN )); then log "+ create $target and refresh font cache"; return 0; fi
+  mkdir -p -- "$dir"
+  cat > "$target" <<'EOF'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <alias><family>Arial</family><prefer><family>Liberation Sans</family></prefer></alias>
+  <alias><family>Times New Roman</family><prefer><family>Liberation Serif</family></prefer></alias>
+  <alias><family>Courier New</family><prefer><family>Liberation Mono</family></prefer></alias>
+  <alias><family>Calibri</family><prefer><family>Carlito</family></prefer></alias>
+  <alias><family>Cambria</family><prefer><family>Caladea</family></prefer></alias>
+  <alias><family>Aptos</family><prefer><family>Carlito</family></prefer></alias>
+  <alias><family>Segoe UI</family><prefer><family>Noto Sans</family></prefer></alias>
+</fontconfig>
+EOF
+  command -v fc-cache >/dev/null && fc-cache -f >/dev/null 2>&1 || true
+}
+
+module_vietnamese_input() {
+  log 'Module: Vietnamese input method (Unikey)'
+  if (( ! DRY_RUN )); then
+    if package_installed fcitx5-unikey; then
+      log 'Fcitx5 Unikey already installed; keeping the existing input method'
+      configure_fcitx5_unikey
+      return 0
+    fi
+    if package_installed ibus-unikey; then
+      log 'IBus Unikey already installed; keeping the existing input method'
+      configure_ibus_unikey
+      return 0
+    fi
+  fi
+  if [[ "${XDG_CURRENT_DESKTOP:-}" == *Cinnamon* || "${ID:-}" == linuxmint && "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]]; then
+    install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || true
+    configure_fcitx5_unikey
+  else
+    install_apt ibus ibus-unikey im-config || true
+    configure_ibus_unikey
+  fi
+}
+
+configure_fcitx5_unikey() {
+  if (( DRY_RUN )); then log '+ select Fcitx5 and add Unikey to user profile'; return 0; fi
+  package_installed fcitx5-unikey || { warn 'Fcitx5 Unikey chưa cài được'; return 0; }
+  if command -v im-config >/dev/null; then
+    im-config -n fcitx5 >/dev/null 2>&1 || warn 'Không chọn được Fcitx5 qua im-config'
+  fi
+  local profile="${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" index
+  mkdir -p -- "$(dirname -- "$profile")"
+  if [[ ! -s "$profile" ]]; then
+    cat > "$profile" <<'EOF'
+[Groups/0]
+Name=Default
+Default Layout=us
+DefaultIM=keyboard-us
+
+[Groups/0/Items/0]
+Name=keyboard-us
+Layout=
+
+[Groups/0/Items/1]
+Name=unikey
+Layout=
+
+[GroupOrder]
+0=Default
+EOF
+  elif ! grep -qx 'Name=unikey' "$profile"; then
+    if ! grep -q '^\[Groups/0\]' "$profile"; then
+      warn "Profile Fcitx5 có cấu trúc khác; hãy thêm Unikey bằng fcitx5-configtool: $profile"
+      return 0
+    fi
+    cp -p -- "$profile" "${profile}.bak-ulok-$(date +%Y%m%d-%H%M%S)"
+    index="$(sed -n 's/^\[Groups\/0\/Items\/\([0-9][0-9]*\)\]$/\1/p' "$profile" | sort -n | tail -1)"
+    index="$((${index:-0} + 1))"
+    printf '\n[Groups/0/Items/%s]\nName=unikey\nLayout=\n' "$index" >> "$profile"
+  fi
+  command -v fcitx5-remote >/dev/null && fcitx5-remote -r >/dev/null 2>&1 || true
+  log 'Fcitx5 Unikey configured; log out and back in to apply session environment'
+}
+
+configure_ibus_unikey() {
+  if (( DRY_RUN )); then log '+ check IBus Unikey engine'; return 0; fi
+  package_installed ibus-unikey || { warn 'IBus Unikey chưa cài được'; return 0; }
+  local component='/usr/share/ibus/component/unikey.xml' engine='' current updated
+  if [[ -r "$component" ]] && command -v python3 >/dev/null; then
+    engine="$(python3 - "$component" <<'PY'
+import sys, xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    print(root.findtext('./engines/engine/name', default=''))
+except (OSError, ET.ParseError):
+    pass
+PY
+)"
+  fi
+  if [[ -z "$engine" ]]; then
+    warn 'Không xác định được engine IBus Unikey; thêm trong Settings > Keyboard > Input Sources'
+    return 0
+  fi
+  log "IBus Unikey engine available: $engine"
+  if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]] && command -v gsettings >/dev/null; then
+    current="$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null)" || current=''
+    if [[ -n "$current" ]]; then
+      updated="$(python3 - "$current" "$engine" <<'PY'
+import ast, sys
+raw = sys.argv[1].strip()
+if raw.startswith('@a(ss) '):
+    raw = raw[len('@a(ss) '):]
+try:
+    sources = ast.literal_eval(raw)
+    assert isinstance(sources, list)
+    assert all(isinstance(x, tuple) and len(x) == 2 for x in sources)
+except (ValueError, SyntaxError, AssertionError):
+    sys.exit(0)
+item = ('ibus', sys.argv[2])
+if item not in sources:
+    sources.append(item)
+print(repr(sources))
+PY
+)"
+      if [[ -n "$updated" ]]; then
+        gsettings set org.gnome.desktop.input-sources sources "$updated" || warn 'Không thêm được Unikey vào GNOME Input Sources'
+      else
+        warn 'Không đọc được Input Sources; thêm Unikey trong Settings > Keyboard'
+      fi
+    fi
+  fi
+  log 'Chọn Unikey trong Input Sources; có thể cần đăng xuất/đăng nhập một lần'
+}
+
+module_canon_ufrii() {
+  [[ -n "$CANON_UFRII_ARCHIVE" ]] || { log 'Canon UFR II: no archive supplied; use --canon-ufrii-archive PATH'; return 0; }
+  log 'Module: Canon UFR II printer driver'
+  if (( ! DRY_RUN )) && { package_installed cnrdrvcups-ufr2 || package_installed cnrdrvcups-ufr2-uk || package_installed cnrdrvcups-ufr2-us; }; then
+    log 'Canon UFR II driver already installed; skipping'
+    return 0
+  fi
+  [[ -f "$CANON_UFRII_ARCHIVE" ]] || { fail "Không tìm thấy gói Canon: $CANON_UFRII_ARCHIVE"; return 1; }
+  case "$CANON_UFRII_ARCHIVE" in *.tar.gz|*.tgz) ;; *) fail 'Gói Canon phải là .tar.gz/.tgz'; return 1 ;; esac
+  local arch tmp package_dir
+  arch="$(dpkg --print-architecture)"
+  case "$arch" in amd64|arm64) ;; *) warn "Canon UFR II chưa hỗ trợ tự cài kiến trúc $arch"; return 0 ;; esac
+  if (( DRY_RUN )); then log "+ extract Canon archive and install $arch Debian packages"; return 0; fi
+  tmp="$(mktemp -d)" || { fail 'Không tạo được thư mục tạm Canon'; return 1; }
+  if ! tar -tzf "$CANON_UFRII_ARCHIVE" >/dev/null || ! tar -xzf "$CANON_UFRII_ARCHIVE" -C "$tmp" --no-same-owner; then
+    rm -rf -- "$tmp"; fail 'Không giải nén được gói Canon'; return 1
+  fi
+  # Canon's release contains Debian packages under an architecture-specific driver directory.
+  local -a packages=()
+  while IFS= read -r -d '' package_dir; do packages+=("$package_dir"); done < <(
+    find "$tmp" -type f -name '*.deb' -print0
+  )
+  local -a selected=()
+  local package pkg_arch pkg_name
+  for package in "${packages[@]}"; do
+    pkg_arch="$(dpkg-deb -f "$package" Architecture 2>/dev/null || true)"
+    pkg_name="$(dpkg-deb -f "$package" Package 2>/dev/null || true)"
+    if [[ "$pkg_name" == cnrdrvcups-ufr2* && ( "$pkg_arch" == "$arch" || "$pkg_arch" == all ) ]]; then
+      selected+=("$package")
+    fi
+  done
+  if ((${#selected[@]} == 0)); then
+    rm -rf -- "$tmp"; fail "Gói Canon không có .deb cho $arch"; return 1
+  fi
+  if ! apt_run install -y "${selected[@]}"; then
+    rm -rf -- "$tmp"; fail 'Không cài được driver Canon UFR II'; return 1
+  fi
+  rm -rf -- "$tmp"
+  log 'Canon UFR II installed; add printer through system-config-printer'
 }
 
 module_media() {
   log 'Module: media'
   install_apt vlc ffmpeg imagemagick gimp file libavcodec-extra fonts-noto-core \
     fonts-noto-cjk fonts-liberation || true
+  install_apt flameshot || true
+  configure_flameshot_shortcut
+}
+
+configure_flameshot_shortcut() {
+  log 'Configuring Flameshot shortcut: Ctrl+Shift+S'
+  if (( DRY_RUN )); then
+    log '+ set GNOME custom keybinding Ctrl+Shift+S to flameshot gui'
+    return 0
+  fi
+  command -v flameshot >/dev/null || { warn 'Flameshot chưa cài; bỏ qua phím tắt'; return 0; }
+  command -v gsettings >/dev/null || { warn 'Không có gsettings; hãy tạo phím tắt Flameshot thủ công'; return 0; }
+  if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]]; then
+    warn 'Phím tắt tự động hiện hỗ trợ GNOME; hãy tạo Ctrl+Shift+S → flameshot gui trong Keyboard Shortcuts'
+    return 0
+  fi
+  local schema='org.gnome.settings-daemon.plugins.media-keys' path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
+  local key_schema='org.gnome.settings-daemon.plugins.media-keys.custom-keybinding'
+  local current
+  current="$(gsettings get "$schema" custom-keybindings 2>/dev/null)" || { warn 'Không đọc được phím tắt GNOME'; return 0; }
+  # Keep all existing custom shortcuts; add this path only once.
+  if [[ "$current" != *"'$path'"* ]]; then
+    if [[ "$current" == '@as []' || "$current" == '[]' ]]; then
+      current="['$path']"
+    else
+      current="${current%]}"
+      current="${current}, '$path']"
+    fi
+    gsettings set "$schema" custom-keybindings "$current" || { warn 'Không lưu được danh sách phím tắt'; return 0; }
+  fi
+  gsettings set "$key_schema:$path" name 'Flameshot' && \
+    gsettings set "$key_schema:$path" command 'flameshot gui' && \
+    gsettings set "$key_schema:$path" binding '<Primary><Shift>s' || warn 'Không gán được Ctrl+Shift+S cho Flameshot'
 }
 
 module_dev() {
   log 'Module: dev'
   install_apt build-essential pkg-config python3 python3-pip python3-venv \
     python3-dev shellcheck make tmux vim || true
+  install_apt inxi gparted gnome-disk-utility nmap net-tools ethtool \
+    traceroute tcpdump iperf3 smartmontools whois || true
 }
 
 module_remote() {
@@ -174,8 +406,15 @@ module_third_party() {
     if [[ -n "$codename" ]]; then
       if (( ! DRY_RUN )); then
         sudo install -d -m 0755 /etc/apt/keyrings
-        curl -fsSL --retry 3 https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc >/dev/null || fail 'Docker signing key download failed'
-        sudo chmod a+r /etc/apt/keyrings/docker.asc
+        local docker_key
+        docker_key="$(mktemp)"
+        if ! curl -fsSL --retry 3 https://download.docker.com/linux/ubuntu/gpg -o "$docker_key"; then
+          rm -f -- "$docker_key"
+          warn 'Docker signing key download failed; skipping Docker repository'
+          return 0
+        fi
+        sudo install -m 0644 "$docker_key" /etc/apt/keyrings/docker.asc
+        rm -f -- "$docker_key"
         sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null <<EOF
 Types: deb
 URIs: https://download.docker.com/linux/ubuntu
@@ -184,7 +423,10 @@ Components: stable
 Architectures: $arch
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
-        apt_run update || fail 'Docker repository update failed'
+        if ! apt_run update; then
+          warn 'Docker repository update failed; skipping Docker packages'
+          return 0
+        fi
       else
         log "+ configure Docker official repository for $codename"
       fi
@@ -202,15 +444,62 @@ EOF
   fi
 }
 
+module_zalo() {
+  (( SKIP_THIRD_PARTY )) && { log 'Zalo skipped with third-party apps'; return 0; }
+  log 'Module: Zalo Linux (full variant)'
+  local marker="${XDG_DATA_HOME:-$HOME/.local/share}/zalo-linux/.ulok-full-installed"
+  if (( ! DRY_RUN )) && [[ -f "$marker" && -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]]; then
+    log 'Zalo Linux full already installed by this kit; skipping duplicate installer'
+    return 0
+  fi
+  local url='https://raw.githubusercontent.com/huynhoainam-sys/zalo-linux-chat-kit/main/install-zalo-linux.sh'
+  local script
+  if (( DRY_RUN )); then
+    log "+ curl -fsSL $url (fallback: wget -qO-) to a temporary file; ZALO_VARIANT=full bash"
+    return 0
+  fi
+  script="$(mktemp)" || { fail 'Không tạo được file tạm cho Zalo'; return 1; }
+  if ! { command -v curl >/dev/null && curl -fsSL "$url" -o "$script"; } && \
+     ! { command -v wget >/dev/null && wget -qO "$script" "$url"; }; then
+    rm -f -- "$script"
+    fail 'Không tải được installer Zalo bằng curl hoặc wget'
+    return 1
+  fi
+  [[ -s "$script" ]] || { rm -f -- "$script"; fail 'Installer Zalo tải về rỗng'; return 1; }
+  # Installer writes to the invoking user's home directory; never run it with sudo.
+  if ! ZALO_VARIANT=full bash "$script"; then
+    rm -f -- "$script"
+    fail 'Cài Zalo Linux thất bại'
+    return 1
+  fi
+  rm -f -- "$script"
+  printf 'full\n' > "$marker"
+  log 'PASS: Zalo Linux installer completed'
+}
+
 verify() {
   log 'Verification'
+  if (( DRY_RUN )); then log 'Dry-run: package verification skipped'; return 0; fi
   local item
-  for item in curl git libreoffice ffmpeg ufw; do
+  for item in curl git ufw; do
     if command -v "$item" >/dev/null 2>&1; then log "PASS: $item"; else warn "Thiếu hoặc chưa có lệnh: $item"; fi
   done
-  for item in google-chrome microsoft-edge code docker zoom wps; do
-    command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Optional app not found: $item"
-  done
+  if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
+    for item in flameshot thunderbird pdfarranger libreoffice ffmpeg; do
+      command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Office app not found: $item"
+    done
+    if dpkg-query -W -f='${Status}' ibus-unikey fcitx5-unikey 2>/dev/null | grep -q 'install ok installed'; then
+      log 'PASS: Vietnamese input package installed'
+    else
+      warn 'Chưa xác nhận được bộ gõ tiếng Việt'
+    fi
+  fi
+  if [[ "$PROFILE" == full && "$SKIP_THIRD_PARTY" == 0 ]]; then
+    for item in google-chrome microsoft-edge code docker zoom wps; do
+      command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Optional app not found: $item"
+    done
+    [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]] && log 'PASS: Zalo Linux launcher' || warn 'Zalo Linux launcher not found'
+  fi
   if command -v dpkg >/dev/null; then
     local broken
     broken="$(dpkg --audit 2>/dev/null || true)"
@@ -245,13 +534,25 @@ main() {
       --no-reboot) NO_REBOOT=1; shift ;;
       --skip-flatpak) SKIP_FLATPAK=1; shift ;;
       --skip-third-party) SKIP_THIRD_PARTY=1; shift ;;
+      --canon-ufrii-archive) CANON_UFRII_ARCHIVE="${2:?Missing Canon archive path}"; shift 2 ;;
+      --fix-unikey) FIX_UNIKEY=1; shift ;;
       --report) REPORT_PATH="${2:?Missing report path}"; shift 2 ;;
       -h|--help) usage; return 0 ;;
       *) usage >&2; return 2 ;;
     esac
   done
   case "$PROFILE" in minimal|office|full) ;; *) fail "Profile không hợp lệ: $PROFILE"; return 2 ;; esac
+  if [[ "$PROFILE" == minimal && -n "$CANON_UFRII_ARCHIVE" ]]; then
+    fail 'Canon UFR II cần profile office hoặc full'
+    return 2
+  fi
   require_platform || { write_report; return 1; }
+  if (( FIX_UNIKEY )); then
+    module_vietnamese_input
+    write_report
+    ((${#FAILURES[@]} == 0))
+    return
+  fi
   if (( ! ASSUME_YES && ! DRY_RUN )); then
     read -r -p "Tiếp tục setup profile '$PROFILE' trên máy này? [y/N] " answer
     [[ "$answer" =~ ^[Yy]$ ]] || { log 'Cancelled by user'; write_report; return 0; }
@@ -267,6 +568,7 @@ main() {
     module_remote
     module_flatpak
     module_third_party
+    module_zalo || true
   fi
   verify
   write_report
@@ -275,4 +577,6 @@ main() {
   (( NO_REBOOT || DRY_RUN )) || log 'Reboot recommended after reviewing the report'
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
