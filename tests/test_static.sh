@@ -29,5 +29,5 @@ grep -q 'fonts-crosextra-carlito' "$ROOT/setup.sh" || fail 'Office fonts missing
 grep -q 'cifs-utils smbclient' "$ROOT/setup.sh" || fail 'SMB tools missing'
 if command -v bash >/dev/null; then bash -n "$ROOT/setup.sh"; fi
 bash -n "$ROOT/doctor.sh"
-"$ROOT/tests/test_input_method.sh"
+bash "$ROOT/tests/test_input_method.sh"
 echo 'PASS: static checks'
