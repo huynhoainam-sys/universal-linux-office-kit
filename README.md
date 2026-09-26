@@ -90,7 +90,7 @@ Zalo được tải từ đúng URL `https://raw.githubusercontent.com/huynhoain
 - AnyDesk, VirtualBox, Discord, Slack, OBS, Kdenlive: có thể bổ sung thành module riêng sau khi chốt danh sách và chính sách nguồn của máy.
 
 Sau khi chạy, xem `setup-report.txt` để biết app nào PASS, app nào WARN/FAIL. App tùy chọn không có trên kiến trúc hoặc distro sẽ được ghi rõ, không làm giả trạng thái thành công.
-Chạy `./doctor.sh` để kiểm tra lại trạng thái ứng dụng, bộ gõ, CUPS và Canon bất cứ lúc nào; báo cáo được lưu trong `doctor-report.txt`.
+Chạy `bash doctor.sh` để kiểm tra lại trạng thái ứng dụng, bộ gõ, CUPS và Canon bất cứ lúc nào; báo cáo được lưu trong `doctor-report.txt`.
 Nếu bộ gõ mất sau cập nhật hoặc đổi desktop, chạy `./setup.sh --fix-unikey` bằng tài khoản đang đăng nhập, sau đó đăng xuất và đăng nhập lại. Với Fcitx5, script giữ profile cũ, thêm engine Unikey nếu thiếu và chọn Fcitx5 qua `im-config`; với GNOME/IBus, script thêm Unikey vào Input Sources khi xác định được engine. Không tạo watchdog chạy nền hoặc ghi đè toàn bộ cấu hình người dùng.
 
 ### Cài Canon UFR II
