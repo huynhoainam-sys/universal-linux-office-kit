@@ -75,7 +75,8 @@ package_installed() {
 }
 
 install_deb_url() {
-  local name="$1" url="$2" target="${TMPDIR:-/tmp}/${name}.deb"
+  local name="$1" url="$2" target
+  target="${TMPDIR:-/tmp}/${name}.deb"
   if (( ! DRY_RUN )) && package_installed "$name"; then
     log "Already installed: $name; skipping download"
     return 0
@@ -151,6 +152,10 @@ module_genoffice() {
     return 0
   fi
   local arch glibc_version release_url dir metadata asset_url digest deb pkg deb_arch
+  # Official GenOffice release, pinned 2026-10-13 for networks blocking api.github.com.
+  # Update BOTH the URL and SHA256 together after verifying upstream release metadata.
+  local fallback_url='https://github.com/genspark-ai/genoffice/releases/download/v0.11.727/genoffice_0.11.727_amd64.deb'
+  local fallback_sha256='2e8b7c5c737d603742c6c5a60d626944cb36c9caed07e9d7cef60998122de26b'
   arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
   [[ "$arch" == amd64 ]] || { warn "GenOffice requires amd64; skipped on $arch"; return 0; }
   glibc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
@@ -160,37 +165,42 @@ module_genoffice() {
   fi
   release_url='https://api.github.com/repos/genspark-ai/genoffice/releases/latest'
   if (( DRY_RUN )); then
-    log "+ get latest GenOffice release from $release_url; verify amd64 .deb; sudo apt-get install -y ./genoffice_<version>_amd64.deb"
+    log "+ check GenOffice latest release metadata at $release_url; on API failure use pinned v0.11.727 with SHA-256 validation"
     return 0
   fi
-  command -v jq >/dev/null || { warn 'GenOffice requires jq to inspect release metadata'; return 0; }
   dir="$(mktemp -d)" || { warn 'Could not create GenOffice temporary directory'; return 0; }
   metadata="$dir/release.json"
   deb="$dir/genoffice_amd64.deb"
-  if ! curl -fsSL --retry 3 "$release_url" -o "$metadata"; then
-    rm -rf -- "$dir"
-    warn 'Could not read GenOffice release metadata'
-    return 0
+  if ! command -v jq >/dev/null 2>&1 || ! curl --fail --location --silent --show-error --connect-timeout 15 --retry 1 "$release_url" -o "$metadata"; then
+    warn 'GitHub API for GenOffice unavailable (or jq missing); using pinned official v0.11.727 release'
+    asset_url="$fallback_url"
+    digest="sha256:$fallback_sha256"
+  else
+    asset_url="$(jq -er '[.assets[] | select(.name | test("^genoffice_[^/]+_amd64[.]deb$"))] | if length == 1 then .[0].browser_download_url else empty end' "$metadata" 2>/dev/null)" || {
+      rm -rf -- "$dir"
+      warn 'GenOffice release metadata missing unique amd64 asset; skipped'
+      return 0
+    }
+    digest="$(jq -r --arg url "$asset_url" '.assets[] | select(.browser_download_url == $url) | .digest // empty' "$metadata" 2>/dev/null)" || digest=''
   fi
-  asset_url="$(jq -er '[.assets[] | select(.name | test("^genoffice_[^/]+_amd64[.]deb$"))] | if length == 1 then .[0].browser_download_url else empty end' "$metadata" 2>/dev/null)" || {
-    rm -rf -- "$dir"
-    warn 'Latest GenOffice release does not have exactly one amd64 .deb asset'
-    return 0
-  }
-  [[ "$asset_url" == https://github.com/genspark-ai/genoffice/releases/download/* ]] || {
+  if [[ "$asset_url" != https://github.com/genspark-ai/genoffice/releases/download/* ]]; then
     rm -rf -- "$dir"
     warn 'GenOffice asset URL is not from the official GitHub repository'
     return 0
-  }
-  digest="$(jq -r --arg url "$asset_url" '.assets[] | select(.browser_download_url == $url) | .digest // empty' "$metadata")"
-  if ! curl -fL --retry 3 --retry-delay 2 "$asset_url" -o "$deb"; then
+  fi
+  if [[ ! "$digest" =~ ^sha256:[a-fA-F0-9]{64}$ ]]; then
     rm -rf -- "$dir"
-    warn 'GenOffice download failed'
+    warn 'GenOffice release lacks trusted SHA-256; refusing unverified installer'
     return 0
   fi
-  if [[ "$digest" == sha256:* ]] && [[ "${digest#sha256:}" != "$(sha256sum "$deb" | awk '{print $1}')" ]]; then
+  if ! curl --fail --location --retry 2 --retry-delay 2 --connect-timeout 20 "$asset_url" -o "$deb"; then
     rm -rf -- "$dir"
-    warn 'GenOffice SHA-256 does not match release metadata'
+    warn 'GenOffice release asset download failed; check github.com/Releases network access'
+    return 0
+  fi
+  if [[ "${digest#sha256:}" != "$(sha256sum "$deb" | awk '{print $1}')" ]]; then
+    rm -rf -- "$dir"
+    warn 'GenOffice SHA-256 checksum mismatch; refusing installation'
     return 0
   fi
   pkg="$(dpkg-deb -f "$deb" Package 2>/dev/null || true)"
@@ -512,34 +522,59 @@ EOF
 module_zalo() {
   (( SKIP_THIRD_PARTY )) && { log 'Zalo skipped with third-party apps'; return 0; }
   log 'Module: Zalo Linux (full variant)'
-  local marker="${XDG_DATA_HOME:-$HOME/.local/share}/zalo-linux/.ulok-full-installed"
-  if (( ! DRY_RUN )) && [[ -f "$marker" && -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]]; then
+  local app_dir="${XDG_DATA_HOME:-$HOME/.local/share}/zalo-linux"
+  local launcher="${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux"
+  local marker="$app_dir/.ulok-full-installed"
+  if (( ! DRY_RUN )) && [[ -f "$marker" && -x "$launcher" ]]; then
     log 'Zalo Linux full already installed by this kit; skipping duplicate installer'
     return 0
   fi
-  local url='https://raw.githubusercontent.com/huynhoainam-sys/zalo-linux-chat-kit/main/install-zalo-linux.sh'
-  local script
+  local repo_url='https://github.com/huynhoainam-sys/zalo-linux-chat-kit.git'
+  local workdir installer local_clone local_origin
   if (( DRY_RUN )); then
-    log "+ curl -fsSL $url (fallback: wget -qO-) to a temporary file; ZALO_VARIANT=full bash"
+    log "+ git clone --depth 1 $repo_url; verify bash syntax; ZALO_VARIANT=full bash install-zalo-linux.sh"
     return 0
   fi
-  script="$(mktemp)" || { fail 'Không tạo được file tạm cho Zalo'; return 1; }
-  if ! { command -v curl >/dev/null && curl -fsSL "$url" -o "$script"; } && \
-     ! { command -v wget >/dev/null && wget -qO "$script" "$url"; }; then
-    rm -f -- "$script"
-    fail 'Không tải được installer Zalo bằng curl hoặc wget'
+  command -v git >/dev/null 2>&1 || { fail 'Thiếu Git; không thể tải Zalo installer'; return 1; }
+  workdir="$(mktemp -d)" || { fail 'Không tạo được thư mục tạm Zalo'; return 1; }
+  installer="$workdir/zalo-linux-chat-kit/install-zalo-linux.sh"
+  if ! GIT_TERMINAL_PROMPT=0 git clone --quiet --depth 1 --branch main "$repo_url" "$workdir/zalo-linux-chat-kit"; then
+    # Use an existing clone ONLY when its Git origin is the expected public repository.
+    local_clone="$HOME/zalo-linux-chat-kit"
+    local_origin="$(git -C "$local_clone" remote get-url origin 2>/dev/null || true)"
+    case "$local_origin" in
+      'https://github.com/huynhoainam-sys/zalo-linux-chat-kit.git'|'https://github.com/huynhoainam-sys/zalo-linux-chat-kit')
+        if [[ -f "$local_clone/install-zalo-linux.sh" ]]; then
+          installer="$local_clone/install-zalo-linux.sh"
+          warn 'Git clone mới bị chặn; dùng installer từ bản Git clone cục bộ (có thể chưa mới nhất)'
+        fi
+        ;;
+    esac
+  fi
+  if [[ ! -s "$installer" ]]; then
+    rm -rf -- "$workdir"
+    fail 'Không tải được Zalo installer qua git clone và không có bản cục bộ hợp lệ; kiểm tra github.com'
     return 1
   fi
-  [[ -s "$script" ]] || { rm -f -- "$script"; fail 'Installer Zalo tải về rỗng'; return 1; }
-  # Installer writes to the invoking user's home directory; never run it with sudo.
-  if ! ZALO_VARIANT=full bash "$script"; then
-    rm -f -- "$script"
-    fail 'Cài Zalo Linux thất bại'
+  if ! bash -n "$installer"; then
+    rm -rf -- "$workdir"
+    fail 'Zalo installer có lỗi cú pháp Bash; không thực thi'
     return 1
   fi
-  rm -f -- "$script"
+  # Installer manages user data under HOME; do not run with sudo.
+  if ! ZALO_VARIANT=full bash "$installer"; then
+    rm -rf -- "$workdir"
+    fail 'Cài Zalo Linux thất bại; xem thông báo GitHub API/Releases ở phía trên'
+    return 1
+  fi
+  rm -rf -- "$workdir"
+  if [[ ! -x "$launcher" ]]; then
+    fail 'Zalo installer kết thúc nhưng không có launcher; không ghi nhận đã cài thành công'
+    return 1
+  fi
+  mkdir -p -- "$app_dir"
   printf 'full\n' > "$marker"
-  log 'PASS: Zalo Linux installer completed'
+  log 'PASS: Zalo Linux full installer completed'
 }
 
 verify() {
@@ -583,9 +618,9 @@ write_report() {
     echo "Dry-run: ${DRY_RUN}"
     echo
     echo "Warnings: ${#WARNINGS[@]}"
-    printf ' - %s\n' "${WARNINGS[@]}"
+    if (( ${#WARNINGS[@]} )); then printf ' - %s\n' "${WARNINGS[@]}"; fi
     echo "Failures: ${#FAILURES[@]}"
-    printf ' - %s\n' "${FAILURES[@]}"
+    if (( ${#FAILURES[@]} )); then printf ' - %s\n' "${FAILURES[@]}"; fi
     echo
     echo "Log: ${LOG_PATH}"
   } >"$REPORT_PATH"
