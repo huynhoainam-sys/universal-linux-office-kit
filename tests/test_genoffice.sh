@@ -44,6 +44,7 @@ sudo() {
   INSTALLS=$((INSTALLS + 1))
 }
 
+sha256sum() { printf '%064d  %s\\n' 0 "$1"; }
 module_genoffice
 [[ "$INSTALLS" == 1 && "$CURLS" == 2 ]] || { echo 'FAIL: official GenOffice asset was not installed once' >&2; exit 1; }
 ALREADY=1
