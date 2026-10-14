@@ -5,24 +5,29 @@ Một bộ bootstrap **1 click** cho Ubuntu và Linux Mint mới cài. Mục ti�
 ## Chạy nhanh
 
 ```bash
-git clone https://github.com/huynhoainam-sys/universal-linux-office-kit.git
-cd universal-linux-office-kit
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$HOME/universal-linux-office-kit"
+cd "$HOME/universal-linux-office-kit"
 chmod +x setup.sh
 ./setup.sh
 ```
 
 Chạy bằng tài khoản desktop thường (không dùng `sudo ./setup.sh`); script tự gọi sudo cho những bước cài gói. Điều này giữ phím tắt, font và launcher trong đúng tài khoản người dùng.
 
-Hoặc tải một file launcher rồi xem trước:
+Nếu đã clone từ trước, cập nhật và chạy lại:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/huynhoainam-sys/universal-linux-office-kit/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh --profile full
+git -C "$HOME/universal-linux-office-kit" pull --ff-only
+bash -n "$HOME/universal-linux-office-kit/setup.sh" && bash "$HOME/universal-linux-office-kit/setup.sh" --profile full
 ```
 
-Lệnh đầy đủ, tự bỏ qua hỏi xác nhận:
+Lệnh cài lần đầu không cần tải trực tiếp từ `raw.githubusercontent.com`. Để luôn dùng đường dẫn cố định như hướng dẫn cập nhật ở trên, clone vào `$HOME/universal-linux-office-kit`.
+
+Chạy tự động bỏ qua xác nhận **sau khi kiểm tra mã nguồn**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/huynhoainam-sys/universal-linux-office-kit/main/setup.sh -o setup.sh && chmod +x setup.sh && ./setup.sh --profile full --yes
+cd "$HOME/universal-linux-office-kit"
+bash -n setup.sh && bash setup.sh --profile full --yes
 ```
 
 Các profile:
@@ -51,7 +56,7 @@ Tùy chọn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-
 | App/gói | Công dụng |
 |---|---|
 | LibreOffice Writer/Calc/Impress | Thay Word/Excel/PowerPoint cho tài liệu, bảng tính và trình chiếu |
-| GenOffice | Bộ soạn thảo AI cho DOCX/XLSX/PPTX/PDF; tải `.deb` từ release chính thức trên Ubuntu/Mint amd64 với glibc 2.34+. Bỏ qua nếu đã cài hoặc dùng `--skip-third-party`. |
+| GenOffice | Bộ soạn thảo AI cho DOCX/XLSX/PPTX/PDF; ưu tiên release API chính thức. Khi API lỗi 403, thử bản dự phòng cố định v0.11.727 và xác minh SHA-256 trước cài. Hỗ trợ amd64/glibc 2.34+. |
 | `libreoffice-l10n-vi`, `libreoffice-help-vi` | Giao diện và trợ giúp tiếng Việt |
 | Hunspell/Hyphen/MyThes tiếng Việt | Kiểm tra chính tả, ngắt dòng và từ điển |
 | Evince, Poppler | Đọc, trích xuất và xử lý PDF |
@@ -83,7 +88,7 @@ Tùy chọn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-
 | Flatpak + Flathub | Cài thêm ứng dụng desktop sandbox | Flatpak/Flathub |
 | Zalo Linux (full) | Nhắn tin qua AppImage cộng đồng, tạo launcher và icon trong tài khoản đang chạy | Installer của `huynhoainam-sys/zalo-linux-chat-kit`; AppImage từ `VN-Linux-Family/zalo-for-linux` |
 
-Zalo được tải từ đúng URL `https://raw.githubusercontent.com/huynhoainam-sys/zalo-linux-chat-kit/main/install-zalo-linux.sh`: ưu tiên `curl -fsSL`, nếu lỗi hoặc chưa có curl thì dùng `wget -qO-`. Kit lưu vào file tạm, kiểm tra tải thành công rồi chạy với `ZALO_VARIANT=full`.
+Zalo installer được tải bằng `git clone` từ repository `huynhoainam-sys/zalo-linux-chat-kit` (không dùng Raw GitHub). Nếu Git clone không truy cập được, kit chỉ dùng lại bản clone cục bộ có origin phù hợp. Bộ cài Zalo tự có fallback bản upstream xác minh SHA-256 khi GitHub API lỗi 403; nếu GitHub Releases cũng bị chặn thì ghi FAIL, không xóa dữ liệu chat.
 
 ### Các app chưa tự cài
 
@@ -136,9 +141,17 @@ APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua t�
 
 ## Giới hạn có chủ ý
 
-Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định. Zalo Linux trong profile `full` là bản AppImage cộng đồng, không phải ứng dụng Linux chính thức của Zalo. Có thể bỏ qua cùng các app bên thứ ba bằng `--skip-third-party`. Installer Zalo tải mã từ nhánh `main` lúc chạy, nên nội dung có thể thay đổi theo thời gian; kiểm tra nguồn trước khi triển khai hàng loạt.
+Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định. Zalo Linux trong profile `full` là bản AppImage cộng đồng, không phải ứng dụng Linux chính thức của Zalo. Có thể bỏ qua cùng các app bên thứ ba bằng `--skip-third-party`. Installer Zalo tải mã từ nhánh `main` qua Git clone lúc chạy, nên nội dung có thể thay đổi; kiểm tra mã nguồn trước khi triển khai hàng loạt. Fallback GenOffice và Zalo được ghim phiên bản đã kiểm tra checksum, không tự động vượt qua firewall/proxy nếu chặn cả GitHub Releases.
 
 File checksum được tham khảo trong thiết kế: `universal-linux-office-kit-v7.3-pro-max-report-printer-optional.sha256` ghi hash `9c7ebdf1af1131eacbf9bd764016e52ce1f4d2c9891bd02274fe7ff185204a28` cho ZIP trỏ tới `/mnt/data/...`. ZIP không có trong máy hiện tại nên chưa thể xác minh hash thực tế.
+
+## Xử lý lỗi GitHub API / Raw HTTP 403
+
+- `raw.githubusercontent.com` báo 403: tiếp tục dùng `git clone`, không dùng `curl | bash`.
+- `api.github.com` báo 403: GenOffice tự fallback gói chính thức v0.11.727, kiểm SHA-256; Zalo dùng fallback trong repository Zalo.
+- `github.com/.../releases/download/` cũng báo 403: không cài gói chưa xác minh. Thử mạng khác hoặc liên hệ quản trị mạng; kết quả ghi WARN/FAIL trong `setup-report.txt`.
+- Lỗi `setup.sh: dòng 78: name: biến chưa liên kết`: đã sửa bằng cách khai báo `target` sau khi gán `name`.
+- Cảnh báo Flatpak `XDG_DATA_DIRS`: đăng xuất/đăng nhập phiên desktop khi cần hiện ứng dụng Flatpak; không liên quan lỗi HTTP 403.
 
 ## Kiểm tra
 
