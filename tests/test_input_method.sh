@@ -27,7 +27,16 @@ EOF
 configure_fcitx5_unikey
 grep -q 'Name=Work' "$XDG_CONFIG_HOME/fcitx5/profile"
 grep -q 'Name=unikey' "$XDG_CONFIG_HOME/fcitx5/profile"
+grep -q '^DefaultIM=unikey$' "$XDG_CONFIG_HOME/fcitx5/profile"
 [[ "$(grep -c '^Name=unikey$' "$XDG_CONFIG_HOME/fcitx5/profile")" == 1 ]]
 configure_fcitx5_unikey
 [[ "$(grep -c '^Name=unikey$' "$XDG_CONFIG_HOME/fcitx5/profile")" == 1 ]]
-echo 'PASS: Fcitx5 profile preserved and Unikey added once'
+
+# GNOME must pick IBus even if an older install left Fcitx5 on the machine.
+export XDG_CURRENT_DESKTOP='ubuntu:GNOME'
+package_installed() { [[ "$1" == fcitx5-unikey ]]; }
+install_apt() { [[ " $* " == *' ibus-unikey '* ]]; }
+configure_ibus_unikey() { echo ibus > "$TEMP/selected"; }
+module_vietnamese_input
+[[ "$(<"$TEMP/selected")" == ibus ]]
+echo 'PASS: Fcitx5 profile and GNOME IBus selection'

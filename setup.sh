@@ -10,6 +10,7 @@ SKIP_FLATPAK=0
 SKIP_THIRD_PARTY=0
 CANON_UFRII_ARCHIVE=''
 FIX_UNIKEY=0
+FIX_FLAMESHOT=0
 REPORT_PATH="${ROOT_DIR}/setup-report.txt"
 LOG_PATH="${ROOT_DIR}/setup.log"
 declare -a WARNINGS=()
@@ -26,7 +27,8 @@ Usage: ./setup.sh [options]
   --skip-flatpak                 Do not install Flatpak packages
   --skip-third-party             Do not install GenOffice/Chrome/Edge/VS Code/Docker/Zoom/Zalo
   --canon-ufrii-archive PATH     Install Canon UFR II from official downloaded .tar.gz
-  --fix-unikey                  Repair only the Vietnamese input method for this user
+  --fix-unikey                  Repair Vietnamese input without full setup
+  --fix-flameshot               Repair Flameshot without full setup
   --report PATH                  Write report to PATH
   -h, --help                     Show help
 EOF
@@ -72,6 +74,14 @@ install_apt() {
 
 package_installed() {
   [[ "$(dpkg-query -W -f='${Status}' "$1" 2>/dev/null || true)" == 'install ok installed' ]]
+}
+desktop_is_gnome() {
+  local desktop="${XDG_CURRENT_DESKTOP:-}"
+  [[ "${desktop,,}" == *gnome* ]]
+}
+desktop_is_cinnamon() {
+  local desktop="${XDG_CURRENT_DESKTOP:-}"
+  [[ "${desktop,,}" == *cinnamon* ]]
 }
 
 install_deb_url() {
@@ -242,23 +252,17 @@ EOF
 
 module_vietnamese_input() {
   log 'Module: Vietnamese input method (Unikey)'
-  if (( ! DRY_RUN )); then
-    if package_installed fcitx5-unikey; then
-      log 'Fcitx5 Unikey already installed; keeping the existing input method'
-      configure_fcitx5_unikey
-      return 0
+  # Choose for the CURRENT desktop, even if the other input framework was installed
+  # by an older run. A stray Fcitx package must not override GNOME's IBus.
+  if desktop_is_cinnamon || { [[ "${ID:-}" == linuxmint ]] && ! desktop_is_gnome; }; then
+    if (( DRY_RUN )) || ! package_installed fcitx5-unikey; then
+      install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || true
     fi
-    if package_installed ibus-unikey; then
-      log 'IBus Unikey already installed; keeping the existing input method'
-      configure_ibus_unikey
-      return 0
-    fi
-  fi
-  if [[ "${XDG_CURRENT_DESKTOP:-}" == *Cinnamon* || "${ID:-}" == linuxmint && "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]]; then
-    install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || true
     configure_fcitx5_unikey
   else
-    install_apt ibus ibus-unikey im-config || true
+    if (( DRY_RUN )) || ! package_installed ibus-unikey; then
+      install_apt ibus ibus-unikey im-config || true
+    fi
     configure_ibus_unikey
   fi
 }
@@ -269,7 +273,7 @@ configure_fcitx5_unikey() {
   if command -v im-config >/dev/null; then
     im-config -n fcitx5 >/dev/null 2>&1 || warn 'Không chọn được Fcitx5 qua im-config'
   fi
-  local profile="${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" index
+  local profile="${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" index changed=0
   mkdir -p -- "$(dirname -- "$profile")"
   if [[ ! -s "$profile" ]]; then
     cat > "$profile" <<'EOF'
@@ -289,7 +293,13 @@ Layout=
 [GroupOrder]
 0=Default
 EOF
-  elif ! grep -qx 'Name=unikey' "$profile"; then
+    changed=1
+  elif ! awk '
+    /^\[Groups\/0\/Items\/[0-9]+\]$/ { in_item=1; next }
+    /^\[/ { in_item=0 }
+    in_item && /^Name=unikey$/ { found=1 }
+    END { exit !found }
+  ' "$profile"; then
     if ! grep -q '^\[Groups/0\]' "$profile"; then
       warn "Profile Fcitx5 có cấu trúc khác; hãy thêm Unikey bằng fcitx5-configtool: $profile"
       return 0
@@ -298,14 +308,36 @@ EOF
     index="$(sed -n 's/^\[Groups\/0\/Items\/\([0-9][0-9]*\)\]$/\1/p' "$profile" | sort -n | tail -1)"
     index="$((${index:-0} + 1))"
     printf '\n[Groups/0/Items/%s]\nName=unikey\nLayout=\n' "$index" >> "$profile"
+    changed=1
   fi
-  command -v fcitx5-remote >/dev/null && fcitx5-remote -r >/dev/null 2>&1 || true
+  # The former default (keyboard-us) kept the keyboard in English after login.
+  # Keep every existing group and item; only select Unikey in the default group.
+  if grep -q '^DefaultIM=' "$profile" && ! grep -qx 'DefaultIM=unikey' "$profile"; then
+    if (( ! changed )); then
+      cp -p -- "$profile" "${profile}.bak-ulok-$(date +%Y%m%d-%H%M%S)"
+    fi
+    sed -i '0,/^DefaultIM=/s/^DefaultIM=.*/DefaultIM=unikey/' "$profile"
+    changed=1
+  elif ! grep -q '^DefaultIM=' "$profile"; then
+    if (( ! changed )); then
+      cp -p -- "$profile" "${profile}.bak-ulok-$(date +%Y%m%d-%H%M%S)"
+    fi
+    sed -i '/^\[Groups\/0\]$/a DefaultIM=unikey' "$profile"
+    changed=1
+  fi
+  if command -v fcitx5-remote >/dev/null; then
+    (( changed )) && fcitx5-remote -r >/dev/null 2>&1 || true
+    fcitx5-remote -s unikey >/dev/null 2>&1 || true
+  fi
   log 'Fcitx5 Unikey configured; log out and back in to apply session environment'
 }
 
 configure_ibus_unikey() {
   if (( DRY_RUN )); then log '+ check IBus Unikey engine'; return 0; fi
   package_installed ibus-unikey || { warn 'IBus Unikey chưa cài được'; return 0; }
+  if command -v im-config >/dev/null; then
+    im-config -n ibus >/dev/null 2>&1 || warn 'Không chọn được IBus qua im-config'
+  fi
   local component='/usr/share/ibus/component/unikey.xml' engine='' current updated
   if [[ -r "$component" ]] && command -v python3 >/dev/null; then
     engine="$(python3 - "$component" <<'PY'
@@ -323,7 +355,7 @@ PY
     return 0
   fi
   log "IBus Unikey engine available: $engine"
-  if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]] && command -v gsettings >/dev/null; then
+  if desktop_is_gnome && command -v gsettings >/dev/null; then
     current="$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null)" || current=''
     if [[ -n "$current" ]]; then
       updated="$(python3 - "$current" "$engine" <<'PY'
@@ -345,6 +377,18 @@ PY
 )"
       if [[ -n "$updated" ]]; then
         gsettings set org.gnome.desktop.input-sources sources "$updated" || warn 'Không thêm được Unikey vào GNOME Input Sources'
+        # Switch to Unikey now, rather than only adding a source the user may
+        # never select. Derive the index from the updated array, not a constant.
+        local unikey_index
+        unikey_index="$(python3 - "$updated" "$engine" <<'PY'
+import ast, sys
+sources = ast.literal_eval(sys.argv[1])
+print(sources.index(('ibus', sys.argv[2])))
+PY
+)"
+        if [[ "$(gsettings writable org.gnome.desktop.input-sources current 2>/dev/null)" == true ]]; then
+          gsettings set org.gnome.desktop.input-sources current "$unikey_index" || warn 'Không kích hoạt được Unikey; chọn qua Super+Space'
+        fi
       else
         warn 'Không đọc được Input Sources; thêm Unikey trong Settings > Keyboard'
       fi
@@ -398,22 +442,101 @@ module_media() {
   log 'Module: media'
   install_apt vlc ffmpeg imagemagick gimp file libavcodec-extra fonts-noto-core \
     fonts-noto-cjk fonts-liberation || true
-  install_apt flameshot || true
+  module_flameshot
+}
+
+module_flameshot() {
+  log 'Module: Flameshot'
+  if (( DRY_RUN )) || ! command -v flameshot >/dev/null 2>&1; then
+    install_apt flameshot || true
+  fi
+  if [[ "${XDG_SESSION_TYPE:-}" == wayland ]] && desktop_is_gnome; then
+    install_apt xdg-desktop-portal xdg-desktop-portal-gnome || true
+    # Install the matching native Wayland Qt backend; Ubuntu LTS versions vary.
+    if command -v ldd >/dev/null 2>&1 && ldd "$(command -v flameshot)" 2>/dev/null | grep -q 'libQt6Core'; then
+      install_apt qt6-wayland || true
+    else
+      install_apt qtwayland5 || true
+    fi
+  fi
   configure_flameshot_shortcut
+  start_flameshot_daemon
+}
+
+start_flameshot_daemon() {
+  (( DRY_RUN )) && return 0
+  command -v flameshot >/dev/null 2>&1 || return 0
+  if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
+    warn 'Không ở trong phiên đồ họa; Flameshot sẽ tự khởi chạy khi đăng nhập desktop'
+    return 0
+  fi
+  if command -v pgrep >/dev/null 2>&1 && pgrep -u "$(id -u)" -x flameshot >/dev/null 2>&1; then
+    log 'Flameshot is already running'
+    return 0
+  fi
+  if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
+    (nohup env QT_QPA_PLATFORM=wayland flameshot </dev/null >/dev/null 2>&1 &)
+  else
+    (nohup flameshot </dev/null >/dev/null 2>&1 &)
+  fi
+  log 'Flameshot startup requested for current graphical session'
 }
 
 configure_flameshot_shortcut() {
   log 'Configuring Flameshot shortcut: Ctrl+Shift+S'
   if (( DRY_RUN )); then
-    log '+ set GNOME custom keybinding Ctrl+Shift+S to flameshot gui'
+    log '+ create user Flameshot launcher/autostart and configure GNOME shortcut'
     return 0
   fi
   command -v flameshot >/dev/null || { warn 'Flameshot chưa cài; bỏ qua phím tắt'; return 0; }
-  command -v gsettings >/dev/null || { warn 'Không có gsettings; hãy tạo phím tắt Flameshot thủ công'; return 0; }
-  if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]]; then
-    warn 'Phím tắt tự động hiện hỗ trợ GNOME; hãy tạo Ctrl+Shift+S → flameshot gui trong Keyboard Shortcuts'
+  local launcher="${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-flameshot"
+  local autostart="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/ulok-flameshot.desktop"
+  if [[ -L "$launcher" ]] || { [[ -e "$launcher" ]] && ! grep -q '^# Managed by Universal Linux Office Kit$' "$launcher"; }; then
+    warn "Giữ nguyên launcher tự tạo: $launcher"
     return 0
   fi
+  mkdir -p -- "$(dirname -- "$launcher")"
+  cat > "$launcher" <<'EOF'
+#!/usr/bin/env bash
+# Managed by Universal Linux Office Kit
+set -Eeuo pipefail
+if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
+  export QT_QPA_PLATFORM=wayland
+fi
+exec flameshot gui
+EOF
+  chmod 0755 "$launcher"
+  if [[ ! -e "$autostart" ]] || grep -q '^X-ULOK-Managed=true$' "$autostart"; then
+    mkdir -p -- "$(dirname -- "$autostart")"
+    if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
+      cat > "$autostart" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Flameshot (Universal Linux Office Kit)
+TryExec=flameshot
+Exec=env QT_QPA_PLATFORM=wayland flameshot
+X-GNOME-Autostart-enabled=true
+X-ULOK-Managed=true
+EOF
+    else
+      cat > "$autostart" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Flameshot (Universal Linux Office Kit)
+TryExec=flameshot
+Exec=flameshot
+X-GNOME-Autostart-enabled=true
+X-ULOK-Managed=true
+EOF
+    fi
+  else
+    warn "Giữ nguyên autostart tự tạo: $autostart"
+  fi
+  if ! desktop_is_gnome; then
+    warn "Tạo launcher $launcher; tự gán Ctrl+Shift+S trong Keyboard Shortcuts"
+    return 0
+  fi
+  command -v gsettings >/dev/null || { warn 'Không có gsettings; hãy tạo phím tắt Flameshot thủ công'; return 0; }
   local schema='org.gnome.settings-daemon.plugins.media-keys' path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
   local key_schema='org.gnome.settings-daemon.plugins.media-keys.custom-keybinding'
   local current
@@ -429,8 +552,11 @@ configure_flameshot_shortcut() {
     gsettings set "$schema" custom-keybindings "$current" || { warn 'Không lưu được danh sách phím tắt'; return 0; }
   fi
   gsettings set "$key_schema:$path" name 'Flameshot' && \
-    gsettings set "$key_schema:$path" command 'flameshot gui' && \
+    gsettings set "$key_schema:$path" command "$launcher" && \
     gsettings set "$key_schema:$path" binding '<Primary><Shift>s' || warn 'Không gán được Ctrl+Shift+S cho Flameshot'
+  if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
+    warn 'GNOME Wayland: nếu Flameshot báo Unable to capture screen, hãy cho phép Share trong portal; thử Ubuntu on Xorg nếu lỗi vẫn tồn tại'
+  fi
 }
 
 module_dev() {
@@ -639,6 +765,7 @@ main() {
       --skip-third-party) SKIP_THIRD_PARTY=1; shift ;;
       --canon-ufrii-archive) CANON_UFRII_ARCHIVE="${2:?Missing Canon archive path}"; shift 2 ;;
       --fix-unikey) FIX_UNIKEY=1; shift ;;
+      --fix-flameshot) FIX_FLAMESHOT=1; shift ;;
       --report) REPORT_PATH="${2:?Missing report path}"; shift 2 ;;
       -h|--help) usage; return 0 ;;
       *) usage >&2; return 2 ;;
@@ -650,8 +777,9 @@ main() {
     return 2
   fi
   require_platform || { write_report; return 1; }
-  if (( FIX_UNIKEY )); then
-    module_vietnamese_input
+  if (( FIX_UNIKEY || FIX_FLAMESHOT )); then
+    (( ! FIX_UNIKEY )) || module_vietnamese_input
+    (( ! FIX_FLAMESHOT )) || module_flameshot
     write_report
     ((${#FAILURES[@]} == 0))
     return

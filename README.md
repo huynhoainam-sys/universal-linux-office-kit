@@ -99,6 +99,29 @@ Sau khi chạy, xem `setup-report.txt` để biết app nào PASS, app nào WARN
 Chạy `bash doctor.sh` để kiểm tra lại trạng thái ứng dụng, bộ gõ, CUPS và Canon bất cứ lúc nào; báo cáo được lưu trong `doctor-report.txt`.
 Nếu bộ gõ mất sau cập nhật hoặc đổi desktop, chạy `./setup.sh --fix-unikey` bằng tài khoản đang đăng nhập, sau đó đăng xuất và đăng nhập lại. Với Fcitx5, script giữ profile cũ, thêm engine Unikey nếu thiếu và chọn Fcitx5 qua `im-config`; với GNOME/IBus, script thêm Unikey vào Input Sources khi xác định được engine. Không tạo watchdog chạy nền hoặc ghi đè toàn bộ cấu hình người dùng.
 
+### Sửa riêng bộ gõ tiếng Việt và Flameshot trên máy đã setup
+
+Mở Terminal **trong đúng phiên Ubuntu desktop**, dùng tài khoản đang đăng nhập (không dùng `sudo bash setup.sh`). Không cần chạy lại profile `full` hoặc cài lại các phần mềm văn phòng:
+
+```bash
+cd "$HOME/universal-linux-office-kit"
+git pull --ff-only
+bash -n setup.sh
+bash setup.sh --fix-unikey --fix-flameshot
+bash doctor.sh
+```
+
+- **Tiếng Việt:** trên Ubuntu GNOME chọn IBus Unikey, kể cả khi phiên bản kit cũ đã cài Fcitx5; trên Linux Mint/Cinnamon dùng Fcitx5. Nếu chưa có bộ gõ đúng, script cài thêm qua APT. GNOME thêm và chọn Unikey trong Input Sources; Fcitx5 giữ các mục có sẵn và đổi bộ gõ mặc định thành Unikey (có sao lưu profile trước khi sửa). Có thể đổi qua tiếng Anh bằng **Super+Space** (GNOME), hoặc phím chuyển bộ gõ của Fcitx5. Sau sửa cần **đăng xuất → đăng nhập** để `im-config` có hiệu lực.
+- **Flameshot:** cài gói nếu thiếu; trên GNOME Wayland bổ sung `xdg-desktop-portal`, backend GNOME và Qt Wayland. Tạo launcher cá nhân `~/.local/bin/ulok-flameshot`, tự chạy khi đăng nhập và gán **Ctrl+Shift+S** trong GNOME. Chỉ cập nhật các tệp kit quản lý; không sửa file `.desktop` của hệ thống và không xóa phím tắt cá nhân khác.
+
+Để tự thử chụp ngay sau khi đăng nhập lại:
+
+```bash
+"$HOME/.local/bin/ulok-flameshot"
+```
+
+Nếu GNOME hỏi quyền **Share/Chia sẻ màn hình**, chọn cho phép. Trường hợp vẫn hiện `Unable to capture screen`, kiểm tra `echo "$XDG_SESSION_TYPE"` và `bash doctor.sh`. Flameshot trên một số bản GNOME/Wayland có lỗi quyền chụp màn hình từ upstream, nên việc cài đủ gói không bảo đảm hoạt động trên mọi bản Ubuntu. Có thể thử **Ubuntu on Xorg** từ biểu tượng bánh răng ở màn hình đăng nhập nếu tùy chọn này được cài sẵn; không tự đổi session hay quyền bảo mật. Xem [hướng dẫn Wayland chính thức của Flameshot](https://flameshot.org/docs/guide/wayland-help/).
+
 ### Cài Canon UFR II
 
 Tra model máy in trên [Canon Việt Nam](https://vn.canon/en/support), tải gói **UFR II/UFRII LT Printer Driver for Linux** dành cho model của bạn (ví dụ bản V6.40), rồi chạy:

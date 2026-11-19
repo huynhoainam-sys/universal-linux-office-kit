@@ -29,11 +29,13 @@ grep -q '<Primary><Shift>s' "$ROOT/setup.sh" || fail 'Flameshot shortcut missing
 grep -q 'ibus-unikey' "$ROOT/setup.sh" || fail 'Vietnamese IBus input missing'
 grep -q 'fcitx5-unikey' "$ROOT/setup.sh" || fail 'Vietnamese Fcitx input missing'
 grep -q -- '--fix-unikey' "$ROOT/setup.sh" || fail 'Unikey repair option missing'
+grep -q -- '--fix-flameshot' "$ROOT/setup.sh" || fail 'Flameshot repair option missing'
 grep -q -- '--canon-ufrii-archive' "$ROOT/setup.sh" || fail 'Canon archive option missing'
 grep -q 'fonts-crosextra-carlito' "$ROOT/setup.sh" || fail 'Office fonts missing'
 grep -q 'cifs-utils smbclient' "$ROOT/setup.sh" || fail 'SMB tools missing'
 if command -v bash >/dev/null; then bash -n "$ROOT/setup.sh"; fi
 bash -n "$ROOT/doctor.sh"
 bash "$ROOT/tests/test_input_method.sh"
+bash "$ROOT/tests/test_flameshot.sh"
 bash "$ROOT/tests/test_genoffice.sh"
 echo 'PASS: static checks'
