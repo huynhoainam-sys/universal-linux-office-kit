@@ -114,6 +114,8 @@ bash doctor.sh
 - **Tiếng Việt:** trên Ubuntu GNOME chọn IBus Unikey, kể cả khi phiên bản kit cũ đã cài Fcitx5; trên Linux Mint/Cinnamon dùng Fcitx5. Nếu chưa có bộ gõ đúng, script cài thêm qua APT. GNOME thêm và chọn Unikey trong Input Sources; Fcitx5 giữ các mục có sẵn và đổi bộ gõ mặc định thành Unikey (có sao lưu profile trước khi sửa). Có thể đổi qua tiếng Anh bằng **Super+Space** (GNOME), hoặc phím chuyển bộ gõ của Fcitx5. Sau sửa cần **đăng xuất → đăng nhập** để `im-config` có hiệu lực.
 - **Flameshot:** cài gói nếu thiếu; trên GNOME Wayland bổ sung `xdg-desktop-portal`, backend GNOME và Qt Wayland. Tạo launcher cá nhân `~/.local/bin/ulok-flameshot`, tự chạy khi đăng nhập và gán **Ctrl+Shift+S** trong GNOME. Chỉ cập nhật các tệp kit quản lý; không sửa file `.desktop` của hệ thống và không xóa phím tắt cá nhân khác.
 
+Nếu APT không cài được Flameshot (ví dụ máy đang dùng mirror nội bộ không truy cập được), lệnh `--fix-flameshot` nay trả về lỗi và ghi nguyên nhân vào `setup.log`/`setup-report.txt`, không coi việc chỉ tạo shortcut là cài thành công. Kiểm tra thủ công bằng `sudo apt-get install -y flameshot` và gửi dòng lỗi APT để xác định đúng mirror/phụ thuộc.
+
 Để tự thử chụp ngay sau khi đăng nhập lại:
 
 ```bash

@@ -442,13 +442,22 @@ module_media() {
   log 'Module: media'
   install_apt vlc ffmpeg imagemagick gimp file libavcodec-extra fonts-noto-core \
     fonts-noto-cjk fonts-liberation || true
-  module_flameshot
+  module_flameshot || warn 'Flameshot setup failed; inspect APT errors above'
 }
 
 module_flameshot() {
   log 'Module: Flameshot'
-  if (( DRY_RUN )) || ! command -v flameshot >/dev/null 2>&1; then
-    install_apt flameshot || true
+  # Presence of an executable is not proof that the APT package installed.
+  # Older releases silently ignored failure here and printed a success report.
+  if (( DRY_RUN )) || ! package_installed flameshot || ! command -v flameshot >/dev/null 2>&1; then
+    if ! install_apt flameshot; then
+      warn 'Flameshot installation failed; run sudo apt-get install flameshot and inspect the error (APT/mirror/dependencies)'
+      return 1
+    fi
+  fi
+  if (( ! DRY_RUN )) && ! package_installed flameshot; then
+    fail 'Flameshot package is still missing after APT install'
+    return 1
   fi
   if [[ "${XDG_SESSION_TYPE:-}" == wayland ]] && desktop_is_gnome; then
     install_apt xdg-desktop-portal xdg-desktop-portal-gnome || true
@@ -778,8 +787,8 @@ main() {
   fi
   require_platform || { write_report; return 1; }
   if (( FIX_UNIKEY || FIX_FLAMESHOT )); then
-    (( ! FIX_UNIKEY )) || module_vietnamese_input
-    (( ! FIX_FLAMESHOT )) || module_flameshot
+    if (( FIX_UNIKEY )); then module_vietnamese_input || true; fi
+    if (( FIX_FLAMESHOT )); then module_flameshot || true; fi
     write_report
     ((${#FAILURES[@]} == 0))
     return
