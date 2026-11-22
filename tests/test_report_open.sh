@@ -23,4 +23,15 @@ OPEN_HTML_REPORT=1 FIX_OFFICE=0
 rm -f -- "$TEMP/opened.txt"
 main --fix-office --no-open-report --yes --report "$TEMP/report.txt"
 [[ ! -e "$TEMP/opened.txt" ]] || { echo 'FAIL: --no-open-report ignored' >&2; exit 1; }
-echo 'PASS: HTML report auto-opens on desktop, and can be disabled'
+
+# The default opener may fail on a new desktop; Firefox must remain a fallback.
+xdg-open() { return 1; }
+firefox() { printf '%s\n' "$*" > "$TEMP/firefox-opened.txt"; }
+OPEN_HTML_REPORT=1 FIX_OFFICE=0
+main --fix-office --yes --report "$TEMP/report.txt"
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  [[ -s "$TEMP/firefox-opened.txt" ]] && break
+  sleep 0.05
+done
+[[ "$(<"$TEMP/firefox-opened.txt")" == "$TEMP/report.html" ]] || { echo 'FAIL: Firefox fallback did not open HTML' >&2; exit 1; }
+echo 'PASS: HTML auto-opens via default browser, supports Firefox fallback and no-open mode'

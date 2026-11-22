@@ -1010,8 +1010,14 @@ write_report() {
   if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT_DIR/report-html.py" ]]; then
     if python3 "$ROOT_DIR/report-html.py" --report "$REPORT_PATH" --output "$REPORT_HTML_PATH" --backup "$BACKUP_DIR" >>"$LOG_PATH" 2>&1; then
       log "PASS: Báo cáo dễ đọc: $REPORT_HTML_PATH"
-      if (( OPEN_HTML_REPORT && ! DRY_RUN )) && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v xdg-open >/dev/null 2>&1; then
-        (xdg-open "$REPORT_HTML_PATH" >/dev/null 2>&1 </dev/null &)
+      if (( OPEN_HTML_REPORT && ! DRY_RUN )) && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+        (
+          if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open "$REPORT_HTML_PATH" || { command -v firefox >/dev/null 2>&1 && firefox "$REPORT_HTML_PATH"; }
+          elif command -v firefox >/dev/null 2>&1; then
+            firefox "$REPORT_HTML_PATH"
+          fi
+        ) >/dev/null 2>&1 </dev/null &
       fi
     else
       log 'WARN: Không xuất được báo cáo HTML; vẫn có báo cáo văn bản.'

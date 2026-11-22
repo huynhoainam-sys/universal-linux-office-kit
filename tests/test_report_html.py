@@ -38,6 +38,15 @@ class HtmlReportTests(unittest.TestCase):
                 self.assertIn(phrase, content)
             self.assertIn("&lt;script&gt;alert", content)
             self.assertNotIn("<script>alert('unsafe')</script>", content)
+            self.assertIn('<symbol id="i-power"', content)
+            self.assertIn('<use href="#i-power"', content)
+            self.assertIn('<use href="#i-wifi"', content)
+            self.assertIn('<use href="#i-logout"', content)
+            self.assertIn('<use href="#i-restart"', content)
+            self.assertIn('href="mailto:huynhoainam@gmail.com"', content)
+            self.assertNotIn('<script', content)
+            self.assertNotIn('src="https://', content)
+            self.assertLess(len(content.encode("utf-8")), 90_000)
 
     def test_dry_run_is_never_reported_as_a_successful_install(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -51,7 +60,7 @@ class HtmlReportTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             content = output.read_text(encoding="utf-8")
             self.assertIn("mô phỏng (dry-run)", content)
-            self.assertIn("không tải hoặc cài WPS/Zalo thật", content)
+            self.assertIn("không cài ứng dụng và không đăng nhập Zalo", content)
             self.assertNotIn("Đã hoàn tất cài đặt", content)
 
 

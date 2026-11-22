@@ -14,6 +14,8 @@ Script tự kiểm tra và bỏ qua phần đã có. Không cần tải Zalo ri�
 
 Terminal hiển thị nhận diện **NAMHH · huynhoainam@gmail.com**, màu chuyên nghiệp trên nền đen; cuối lượt tự mở báo cáo HTML có mục hướng dẫn song ngữ và minh họa các menu **Quick Settings → Power → Log Out… / Restart…** của Ubuntu GNOME.
 
+Giao diện theo phong cách công nghệ **NAMHH / AI thực chiến** nhưng nhẹ: HTML tự chứa, icon SVG chuẩn, không CDN/JavaScript. Dùng Firefox hoặc trình duyệt mặc định Ubuntu. [Xem quy tắc thiết kế và thuật ngữ](docs/DESIGN-RULES.md).
+
 | Tự chuẩn bị | Dùng để làm gì? |
 |---|---|
 | **WPS Office** ưu tiên, thêm LibreOffice hoặc GenOffice khi cần | Soạn Word, Excel, PowerPoint, PDF; tối đa **2 bộ Office được bổ sung** |

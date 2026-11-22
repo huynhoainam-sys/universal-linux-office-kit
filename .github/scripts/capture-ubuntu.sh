@@ -42,4 +42,11 @@ if [[ -n "$chrome" ]]; then
     "file://$PWD/ubuntu-captures/report.html" >/dev/null 2>&1 || true
 fi
 
+# Firefox ships with Ubuntu desktops; verify the fully self-contained HTML there too.
+if command -v firefox >/dev/null 2>&1; then
+  timeout 30 firefox --headless --width 1280 --height 1000 \
+    --screenshot "$PWD/ubuntu-captures/06-firefox-report.png" \
+    "file://$PWD/ubuntu-captures/report.html" >/dev/null 2>&1 || true
+fi
+
 printf '%s\n' 'Ubuntu 24.04 screenshots captured from the actual dry-run session.'
