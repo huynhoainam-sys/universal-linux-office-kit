@@ -109,23 +109,29 @@ def render(report, output, backup=""):
     text = report_path.read_text(encoding="utf-8", errors="replace")
     warnings, failures = report_diagnostics(text)
     tables, ready, total, office_count = cards_html()
+    dry_run = any(line.strip() == "Dry-run: 1" for line in text.splitlines())
     os_name = platform.system()
     try:
         os_name = platform.freedesktop_os_release().get("PRETTY_NAME", os_name)
     except (AttributeError, OSError):
         pass
-    status_title = "Đã hoàn tất cài đặt" if not failures else "Có ứng dụng cần kiểm tra thêm"
-    status_note = (
-        "Bạn có thể bắt đầu làm việc. Hãy đăng xuất rồi đăng nhập lại để bộ gõ hoạt động ổn định."
-        if not failures else
-        "Phần lớn thao tác vẫn dùng được. Có mục chưa hoàn tất; xem chi tiết cuối báo cáo."
-    )
+    if dry_run:
+        status_title = "Đã chạy thử bản mô phỏng (dry-run)"
+        status_note = "Chưa cài thêm phần mềm hoặc thay đổi cấu hình. Danh sách bên dưới là tình trạng thực tế của máy chạy thử."
+    elif failures:
+        status_title = "Có ứng dụng cần kiểm tra thêm"
+        status_note = "Phần lớn thao tác vẫn dùng được. Có mục chưa hoàn tất; xem chi tiết cuối báo cáo."
+    else:
+        status_title = "Đã hoàn tất cài đặt"
+        status_note = "Bạn có thể bắt đầu làm việc. Hãy đăng xuất rồi đăng nhập lại để bộ gõ hoạt động ổn định."
     alert = (
         '<div class="alert">Có ' + str(len(failures)) +
         ' mục chưa hoàn tất. Các ứng dụng đã cài trước đó vẫn được giữ nguyên.</div>'
         if failures else
         '<div class="notice">Không cần cài lại ứng dụng đã có. Dữ liệu Zalo và tài liệu cá nhân được giữ nguyên.</div>'
     )
+    if dry_run:
+        alert = '<div class="notice">Bản xem trước trên Ubuntu: không tải hoặc cài WPS/Zalo thật, không kết nối tài khoản Zalo.</div>'
     technical = "".join(f"<li>{escape(item)}</li>" for item in warnings + failures)
     if not technical:
         technical = "<li>Không ghi nhận cảnh báo từ bộ cài.</li>"
