@@ -36,6 +36,9 @@ if [[ -n "$chrome" ]]; then
   "$chrome" --headless --no-sandbox --disable-gpu --hide-scrollbars \
     --screenshot="$PWD/ubuntu-captures/04-html-report.png" --window-size=1280,1050 \
     "file://$PWD/ubuntu-captures/report.html" >/dev/null 2>&1 || true
+  "$chrome" --headless --no-sandbox --disable-gpu --hide-scrollbars \
+    --screenshot="$PWD/ubuntu-captures/05-html-report-full.png" --window-size=1280,5200 \
+    "file://$PWD/ubuntu-captures/report.html" >/dev/null 2>&1 || true
 fi
 
 printf '%s\n' 'Ubuntu 24.04 screenshots captured from the actual dry-run session.'

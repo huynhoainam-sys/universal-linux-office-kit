@@ -246,12 +246,12 @@ HTML_TEMPLATE = r'''<!doctype html>
       <div class="steps">
         <div class="step"><span class="number">1</span><strong>Bấm góc trên bên phải</strong>
           <p>Tìm khu vực Wi‑Fi, âm lượng, pin ở thanh trên cùng.</p>
-          <div class="mock"><div class="mockbar"><span>Activities</span><span class="focus">◖  ◉  ⏻  ⌄</span></div>
+          <div class="mock"><div class="mockbar"><span>Activities</span><span class="focus">Wi‑Fi · Sound · Power</span></div>
           <div style="text-align:right;padding:32px 13px 8px;color:#47647a">↑ Bấm cụm biểu tượng này</div></div></div>
         <div class="step"><span class="number">2</span><strong>Mở mục nguồn</strong>
-          <p>Trong bảng hiện ra, bấm biểu tượng nguồn <b>⏻</b> hoặc <b>Power Off / Log Out</b>.</p>
+          <p>Trong bảng hiện ra, chọn <b>Power Off / Log Out</b> (Nguồn / Đăng xuất).</p>
           <div class="mock"><div class="mockbar"><span>Quick Settings</span><span>×</span></div>
-          <div class="mockmenu"><div class="mockline">Wi‑Fi &nbsp; Âm lượng</div><div class="mockline selected">⏻ &nbsp; Power / Nguồn →</div></div></div></div>
+          <div class="mockmenu"><div class="mockline">Wi‑Fi &nbsp; Âm lượng</div><div class="mockline selected">Power / Nguồn →</div></div></div></div>
         <div class="step"><span class="number">3</span><strong>Chọn Log Out / Đăng xuất</strong>
           <p>Xác nhận nếu hệ thống hỏi, sau đó đăng nhập lại bằng mật khẩu Ubuntu.</p>
           <div class="mock"><div class="mockbar"><span>Power</span><span>×</span></div>

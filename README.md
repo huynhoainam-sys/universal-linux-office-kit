@@ -30,6 +30,8 @@ Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó c
 
 > **Lưu ý:** Nếu máy đã có 2–3 bộ Office khác nhau, kit không tự gỡ phần mềm/dữ liệu. Nếu mạng cơ quan chặn GitHub hoặc nguồn tải, bộ cài ghi cảnh báo; bạn có thể nhờ IT kiểm tra. Trên GNOME Wayland, Flameshot đôi khi cần cho phép quyền chụp màn hình lần đầu.
 
+**Xem ảnh thử trên Ubuntu 24.04:** vào [GitHub Actions — Ubuntu desktop kit checks](https://github.com/huynhoainam-sys/universal-linux-office-kit/actions/workflows/tests.yml), mở lượt chạy mới nhất → **Artifacts** → tải `namhh-ubuntu-24.04-preview`. Tệp ZIP có 3 ảnh Terminal tiến trình và ảnh báo cáo HTML. Đây là bản chạy **dry-run trên Ubuntu thật**, không phải bằng chứng WPS/Zalo đã đăng nhập trên máy người dùng.
+
 ---
 
 <details>
