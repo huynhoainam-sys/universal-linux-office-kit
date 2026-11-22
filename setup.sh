@@ -71,8 +71,6 @@ ui_stage_close() {
     ui_paint "$UI_RED" '           ×  Cần kiểm tra  ·  chi tiết trong báo cáo'
   elif ((${#WARNINGS[@]} > UI_STAGE_WARNINGS)); then
     ui_paint "$UI_YELLOW" '           !  Có lưu ý  ·  xem báo cáo cuối'
-  else
-    ui_paint "$UI_GREEN" '           ✓  Hoàn tất bước'
   fi
 }
 

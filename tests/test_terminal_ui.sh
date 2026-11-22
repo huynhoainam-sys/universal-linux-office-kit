@@ -14,7 +14,7 @@ output="$(ui_banner; ui_stage 'Kiểm tra Ubuntu'; log 'PASS: Kiểm tra hoàn t
 [[ "$output" == *NAMHH* && "$output" == *huynhoainam@gmail.com* ]]
 [[ "$output" == *'100%'* && "$output" == *'Zalo'* ]]
 [[ "$output" == *'[01/02 ·  50%]'* && "$output" == *'[02/02 · 100%]'* ]]
-[[ "$output" == *'Hoàn tất bước'* ]]
+[[ "$output" == *'HOÀN TẤT'* ]]
 [[ "$output" != *'█'* ]] || { echo 'FAIL: visual progress bar is too busy' >&2; exit 1; }
 [[ "$output" == *$'\033['* ]] || { echo 'FAIL: ANSI colors missing with FORCE_COLOR' >&2; exit 1; }
 [[ -s "$LOG_PATH" ]]
