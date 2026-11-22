@@ -22,6 +22,60 @@ REPORT_PATH="${ROOT_DIR}/setup-report.txt"
 LOG_PATH="${ROOT_DIR}/setup.log"
 declare -a WARNINGS=()
 declare -a FAILURES=()
+UI_COLOR=0
+UI_VISIBLE=0
+UI_STAGE=0
+UI_TOTAL=0
+UI_RESET=$'\033[0m'
+UI_CYAN=$'\033[1;36m'
+UI_BLUE=$'\033[1;34m'
+UI_GREEN=$'\033[1;32m'
+UI_YELLOW=$'\033[1;33m'
+UI_RED=$'\033[1;31m'
+UI_BOLD=$'\033[1m'
+
+ui_init() {
+  UI_COLOR=0 UI_VISIBLE=0 UI_STAGE=0
+  if [[ -t 1 || "${FORCE_COLOR:-0}" == 1 ]]; then UI_VISIBLE=1; fi
+  if (( UI_VISIBLE )) && [[ ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then UI_COLOR=1; fi
+}
+
+# Color only on stdout: setup.log, reports and redirected CI output stay plain.
+ui_paint() {
+  local color="$1"; shift
+  if (( UI_COLOR )); then printf '%b%s%b\n' "$color" "$*" "$UI_RESET"
+  else printf '%s\n' "$*"; fi
+}
+
+ui_banner() {
+  (( UI_VISIBLE )) || return 0
+  ui_paint "$UI_CYAN" '╭──────────────────────────────────────────────────────╮'
+  ui_paint "$UI_CYAN" '│   ███╗  ██╗  NAMHH  /  UNIVERSAL LINUX OFFICE KIT  │'
+  ui_paint "$UI_CYAN" '│   ████╗ ██║  Ubuntu · Mint · One-command setup     │'
+  ui_paint "$UI_CYAN" '╰──────────────────────────────────────────────────────╯'
+  ui_paint "$UI_BOLD" '  CREATED BY NAMHH  ·  DESIGN: huynhoainam@gmail.com'
+  printf '\n'
+}
+
+ui_stage() {
+  (( UI_STAGE += 1 ))
+  (( UI_VISIBLE && UI_TOTAL > 0 )) || return 0
+  local percent=$(((UI_STAGE-1)*100/UI_TOTAL)) bar='' i
+  for ((i=0;i<20;i++)); do
+    if (( i < percent / 5 )); then bar+='█'; else bar+='░'; fi
+  done
+  ui_paint "$UI_BLUE" "  [$bar] ${percent}%  [$UI_STAGE/$UI_TOTAL] $*"
+}
+
+ui_finish() {
+  (( UI_VISIBLE )) || return 0
+  if ((${#FAILURES[@]})); then
+    ui_paint "$UI_RED" "  ✗ DỪNG: ${#FAILURES[@]} lỗi · ${#WARNINGS[@]} cảnh báo · xem $REPORT_PATH"
+  else
+    ui_paint "$UI_GREEN" "  [████████████████████] 100%  ·  HOÀN TẤT ${UI_STAGE}/${UI_TOTAL} BƯỚC"
+    ((${#WARNINGS[@]} == 0)) || ui_paint "$UI_YELLOW" "  ⚠ Có ${#WARNINGS[@]} cảnh báo trong $REPORT_PATH"
+  fi
+}
 
 usage() {
   cat <<'EOF'
@@ -47,7 +101,18 @@ Usage: ./setup.sh [options]
 EOF
 }
 
-log() { printf '[%s] %s\n' "$(date '+%F %T')" "$*" | tee -a "$LOG_PATH"; }
+log() {
+  local line="[$(date '+%F %T')] $*" color=''
+  printf '%s\n' "$line" >> "$LOG_PATH"
+  case "$*" in
+    *FAIL:*|*'failed'*|*'thất bại'*) color="$UI_RED" ;;
+    *WARN:*|*'cảnh báo'*) color="$UI_YELLOW" ;;
+    *PASS:*|*'completed'*|*'bỏ qua'*|*'skipping'*) color="$UI_GREEN" ;;
+    Module:*|*'Module:'*) color="$UI_CYAN" ;;
+    *) color='' ;;
+  esac
+  ui_paint "$color" "$line"
+}
 warn() { WARNINGS+=("$*"); log "WARN: $*"; }
 fail() { FAILURES+=("$*"); log "FAIL: $*"; }
 
@@ -867,18 +932,24 @@ main() {
   case "$ZALO_VARIANT" in chat|full) ;; *) fail "Zalo variant không hợp lệ: $ZALO_VARIANT"; return 2 ;; esac
   if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; fi
   if (( FIX_ZALO_LOGIN )); then FIX_ZALO=1; UPDATE_ZALO=1; fi
+  ui_init
+  ui_banner
   if [[ "$PROFILE" == minimal && -n "$CANON_UFRII_ARCHIVE" ]]; then
     fail 'Canon UFR II cần profile office hoặc full'
     return 2
   fi
   require_platform || { write_report; return 1; }
   if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO )); then
+    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
+    ui_stage 'Sao lưu cấu hình trước khi sửa'
     backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
-    if (( FIX_UNIKEY )); then module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
-    if (( FIX_FLAMESHOT )); then module_flameshot || fail 'Sửa Flameshot thất bại'; fi
+    if (( FIX_UNIKEY )); then ui_stage 'Sửa bộ gõ tiếng Việt'; module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
+    if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Alt+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
     if (( FIX_ZALO || UPDATE_ZALO )); then
+      ui_stage 'Zalo Linux AppImage'
       if module_zalo; then
         if (( FIX_ZALO_LOGIN )); then
+          ui_stage 'Phục hồi đăng nhập Zalo an toàn'
           if (( DRY_RUN )); then
             log '+ bash vendor/zalo/zalo-login-recover.sh --dry-run'
           elif [[ -f "$ROOT_DIR/vendor/zalo/zalo-login-recover.sh" ]] && bash -n "$ROOT_DIR/vendor/zalo/zalo-login-recover.sh"; then
@@ -892,7 +963,9 @@ main() {
       fi
     fi
     if ((${#FAILURES[@]})); then restore_desktop_settings; fi
+    ui_stage 'Tổng kết và ghi báo cáo'
     write_report
+    ui_finish
     ((${#FAILURES[@]} == 0))
     return
   fi
@@ -900,23 +973,40 @@ main() {
     read -r -p "Tiếp tục setup profile '$PROFILE' trên máy này? [y/N] " answer
     [[ "$answer" =~ ^[Yy]$ ]] || { log 'Cancelled by user'; write_report; return 0; }
   fi
+  UI_TOTAL=5
+  if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then ((UI_TOTAL += 3)); fi
+  if [[ "$PROFILE" == full ]]; then ((UI_TOTAL += 5)); fi
+  ui_stage 'Kiểm tra và sửa trạng thái APT/dpkg'
   repair_package_state || true
+  ui_stage 'Sao lưu cấu hình desktop'
   backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
+  ui_stage 'Thư viện nền tảng và mạng'
   module_base
   if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
+    ui_stage 'Office, font tiếng Việt và máy in'
     module_office
+    ui_stage 'Media và Flameshot GUI'
     module_media
+    ui_stage 'GenOffice'
     module_genoffice
   fi
   if [[ "$PROFILE" == full ]]; then
+    ui_stage 'Công cụ lập trình'
     module_dev
+    ui_stage 'Kết nối và điều khiển từ xa'
     module_remote
+    ui_stage 'Flatpak'
     module_flatpak
+    ui_stage 'Ứng dụng bên thứ ba'
     module_third_party
+    ui_stage 'Zalo Linux'
     module_zalo || true
   fi
+  ui_stage 'Kiểm tra sau cài đặt'
   verify
+  ui_stage 'Xuất báo cáo'
   write_report
+  ui_finish
   if ((${#FAILURES[@]})); then log 'Completed with failures'; return 1; fi
   log 'Completed with PASS/WARN status'
   (( NO_REBOOT || DRY_RUN )) || log 'Reboot recommended after reviewing the report'

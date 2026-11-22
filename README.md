@@ -2,6 +2,8 @@
 
 Một bộ bootstrap **1 click** cho Ubuntu và Linux Mint mới cài. Mục tiêu là đưa máy về trạng thái dùng được cho văn phòng, học tập và làm việc hằng ngày, nhưng vẫn giữ quyền kiểm soát: không chạy lệnh mơ hồ từ Internet, không xóa ứng dụng sẵn có, không tự thêm kho bên thứ ba.
 
+**Terminal NAMHH:** khi chạy tương tác trên Ubuntu Terminal, bộ cài hiện banner **CREATED BY NAMHH — DESIGN: huynhoainam@gmail.com**, màu trạng thái (xanh dương: đang chạy, xanh lá: PASS, vàng: WARN, đỏ: FAIL) và thanh tiến trình theo **số bước thực tế**. Log `setup.log` và `setup-report.txt` vẫn là văn bản thuần không chứa mã ANSI. Đặt `NO_COLOR=1` nếu không muốn màu; khi chạy qua CI/pipe, banner và thanh tiến trình được ẩn để log gọn.
+
 ## Chạy nhanh
 
 ### Sửa Ubuntu 24.04 GNOME/Wayland: tiếng Việt, Flameshot, Zalo (một lần chạy)

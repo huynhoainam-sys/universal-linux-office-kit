@@ -5,6 +5,11 @@ download_zalo_appimage() {
   local official_url="$1" target="$2" digest="$3"
   local candidate actual hash_expected=''
   local -a candidates=("$official_url")
+  local -a curl_progress=(--silent --show-error)
+  if [[ -t 2 && "${ZALO_DOWNLOAD_PROGRESS:-auto}" != off ]]; then
+    # Real byte progress while downloading; keep CI pipes and logs compact.
+    curl_progress=(--progress-bar)
+  fi
 
   if [[ "$digest" =~ ^sha256:([[:xdigit:]]{64})$ ]]; then
     hash_expected="${BASH_REMATCH[1],,}"
@@ -34,7 +39,7 @@ download_zalo_appimage() {
 
   for candidate in "${candidates[@]}"; do
     echo "[ZALO] Tải từ: ${candidate%%/https://*}"
-    if ! curl --fail --location --silent --show-error --retry 2 --connect-timeout 20 --max-time 900 "$candidate" -o "$target"; then
+    if ! curl --fail --location "${curl_progress[@]}" --retry 2 --connect-timeout 20 --max-time 900 "$candidate" -o "$target"; then
       rm -f -- "$target"
       continue
     fi

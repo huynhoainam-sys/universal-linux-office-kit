@@ -11,10 +11,62 @@ BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 DESKTOP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 APPIMAGE="$APP_DIR/Zalo-x86_64.AppImage"
 API="https://api.github.com/repos/$REPO/releases/latest"
-die(){ echo "[ZALO-ERROR] $*" >&2; exit 1; }
-info(){ echo "[ZALO] $*"; }
+ZALO_UI_COLOR=0
+ZALO_UI_VISIBLE=0
+ZALO_UI_STAGE=0
+ZALO_UI_TOTAL=6
+ZALO_RESET=$'\033[0m'
+ZALO_BLUE=$'\033[1;34m'
+ZALO_CYAN=$'\033[1;36m'
+ZALO_GREEN=$'\033[1;32m'
+ZALO_YELLOW=$'\033[1;33m'
+ZALO_RED=$'\033[1;31m'
+
+zalo_ui_init() {
+  if [[ -t 1 || "${FORCE_COLOR:-0}" == 1 ]]; then ZALO_UI_VISIBLE=1; fi
+  if (( ZALO_UI_VISIBLE )) && [[ ! -v NO_COLOR && "${TERM:-}" != dumb ]]; then ZALO_UI_COLOR=1; fi
+}
+zalo_ui_print() {
+  local color="$1"; shift
+  if (( ZALO_UI_COLOR )); then printf '%b%s%b\n' "$color" "$*" "$ZALO_RESET"
+  else printf '%s\n' "$*"; fi
+}
+zalo_ui_banner() {
+  (( ZALO_UI_VISIBLE )) || return 0
+  zalo_ui_print "$ZALO_CYAN" '╭────────────────────────────────────────────────────╮'
+  zalo_ui_print "$ZALO_CYAN" '│  NAMHH / ZALO LINUX CHAT KIT                       │'
+  zalo_ui_print "$ZALO_CYAN" '╰────────────────────────────────────────────────────╯'
+  zalo_ui_print "$ZALO_BLUE" '  CREATED BY NAMHH  ·  DESIGN: huynhoainam@gmail.com'
+  printf '\n'
+}
+zalo_ui_stage() {
+  (( ZALO_UI_STAGE += 1 ))
+  (( ZALO_UI_VISIBLE )) || return 0
+  local percent=$(((ZALO_UI_STAGE-1)*100/ZALO_UI_TOTAL)) bar='' i
+  for ((i=0;i<20;i++)); do
+    if (( i < percent / 5 )); then bar+='█'; else bar+='░'; fi
+  done
+  zalo_ui_print "$ZALO_BLUE" "  [$bar] ${percent}%  [$ZALO_UI_STAGE/$ZALO_UI_TOTAL] $*"
+}
+zalo_ui_finish() {
+  (( ZALO_UI_VISIBLE )) || return 0
+  zalo_ui_print "$ZALO_GREEN" "  [████████████████████] 100%  ·  HOÀN TẤT $ZALO_UI_STAGE/$ZALO_UI_TOTAL BƯỚC"
+}
+die(){ zalo_ui_print "$ZALO_RED" "[ZALO-ERROR] $*" >&2; exit 1; }
+info(){
+  local color="$ZALO_CYAN"
+  case "$*" in
+    *'đã xác minh'*|*'Đã cài'*|*'khớp SHA'*|*'thành công'*) color="$ZALO_GREEN" ;;
+    *'không'*|*'chặn'*|*'sai'*|*'dự phòng'*) color="$ZALO_YELLOW" ;;
+  esac
+  zalo_ui_print "$color" "[ZALO] $*"
+}
+zalo_ui_init
+zalo_ui_banner
+zalo_ui_stage 'Kiểm tra hệ điều hành và kiến trúc'
 [[ "$(uname -m)" == "x86_64" ]] || die "Bản này dành cho Intel/AMD x86_64"
 [[ "$VARIANT" == "full" || "$VARIANT" == "chat" ]] || die "ZALO_VARIANT chỉ nhận full hoặc chat"
+zalo_ui_stage 'Kiểm tra và bổ sung thư viện còn thiếu'
 if ! command -v apt-get >/dev/null || ! command -v sudo >/dev/null; then
   command -v curl >/dev/null || die "Thiếu curl; cài curl thủ công"
   command -v python3 >/dev/null || die "Thiếu python3; cài python3 thủ công"
@@ -68,6 +120,7 @@ backup_before_update() {
 }
 # Thu thập metadata tự động. Nếu API bị HTTP 403 hoặc JSON lỗi, fallback sang
 # một release chính thức đã xác minh tên file và SHA-256 (không xóa bản đang cài).
+zalo_ui_stage 'Chọn bản phát hành có SHA-256'
 metadata=""
 release_available=0
 if curl --fail --location --silent --show-error --connect-timeout 20 "$API" -o "$tmp"; then
@@ -115,14 +168,17 @@ if [[ "$VARIANT" == full ]] && command -v apt-get >/dev/null && command -v sudo 
   sudo apt-get update
   sudo apt-get install -y libgl1 libgl1:i386 libegl1 libegl1:i386 libvulkan1 libvulkan1:i386 mesa-vulkan-drivers mesa-vulkan-drivers:i386
 fi
+zalo_ui_stage 'Tải AppImage và kiểm tra tính toàn vẹn'
 if ! download_zalo_appimage "$URL" "$APPIMAGE.part" "$DIGEST"; then
   rm -f "$APPIMAGE.part"
   if [[ -x "$APPIMAGE" ]]; then
     info 'Các nguồn tải bị chặn hoặc checksum sai; giữ nguyên Zalo đã cài. Không xóa dữ liệu.'
+    zalo_ui_print "$ZALO_YELLOW" '  ⚠ Dừng cập nhật an toàn: bản đang cài được giữ nguyên.'
     exit 0
   fi
   die "Không tải được AppImage từ GitHub và mirror có SHA-256. Kiểm tra proxy FPT, hoặc cung cấp ZALO_OFFLINE_APPIMAGE đã xác minh; chưa thay đổi dữ liệu Zalo."
 fi
+zalo_ui_stage 'Backup dữ liệu và cập nhật AppImage'
 backup_before_update
 chmod 0755 "$APPIMAGE.part"
 if [[ -f "$APPIMAGE" ]]; then
@@ -130,6 +186,7 @@ if [[ -f "$APPIMAGE" ]]; then
   mv -f -- "$APPIMAGE.previous.tmp" "$APPIMAGE.previous"
 fi
 mv -f -- "$APPIMAGE.part" "$APPIMAGE"
+zalo_ui_stage 'Tạo launcher, icon và tích hợp desktop'
 install -m 0755 "$ROOT_DIR/zalo-launcher.sh" "$BIN_DIR/zalo-linux"
 chmod 0755 "$BIN_DIR/zalo-linux"
 ICON_PATH="$APP_DIR/zalo.png"
@@ -155,3 +212,4 @@ EOF
 command -v update-desktop-database >/dev/null && update-desktop-database "$DESKTOP_DIR" || true
 info "Đã cài $APPIMAGE"
 info "Chạy: $BIN_DIR/zalo-linux"
+zalo_ui_finish

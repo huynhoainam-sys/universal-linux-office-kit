@@ -49,4 +49,5 @@ bash "$ROOT/tests/test_genoffice.sh"
 bash "$ROOT/tests/test_repair_flow.sh"
 bash "$ROOT/tests/test_apt_skip.sh"
 bash "$ROOT/tests/test_zalo_bundle.sh"
+bash "$ROOT/tests/test_terminal_ui.sh"
 echo 'PASS: static checks'
