@@ -566,7 +566,7 @@ start_flameshot_daemon() {
 }
 
 configure_flameshot_shortcut() {
-  log 'Configuring Flameshot shortcut: Ctrl+Shift+S'
+  log 'Configuring Flameshot shortcut: Ctrl+Alt+S'
   if (( DRY_RUN )); then
     log '+ create user Flameshot launcher/autostart and configure GNOME shortcut'
     return 0
@@ -621,7 +621,7 @@ EOF
     warn "Giữ nguyên autostart tự tạo: $autostart"
   fi
   if ! desktop_is_gnome; then
-    warn "Tạo launcher $launcher; tự gán Ctrl+Shift+S trong Keyboard Shortcuts"
+    warn "Tạo launcher $launcher; tự gán Ctrl+Alt+S trong Keyboard Shortcuts"
     return 0
   fi
   command -v gsettings >/dev/null || { warn 'Không có gsettings; hãy tạo phím tắt Flameshot thủ công'; return 0; }
@@ -641,7 +641,7 @@ EOF
   fi
   gsettings set "$key_schema:$path" name 'Flameshot' && \
     gsettings set "$key_schema:$path" command "$launcher" && \
-    gsettings set "$key_schema:$path" binding '<Primary><Shift>s' || warn 'Không gán được Ctrl+Shift+S cho Flameshot'
+    gsettings set "$key_schema:$path" binding '<Primary><Alt>s' || warn 'Không gán được Ctrl+Alt+S cho Flameshot'
   if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
     warn 'GNOME Wayland: nếu Flameshot báo Unable to capture screen, hãy cho phép Share trong portal; thử Ubuntu on Xorg nếu lỗi vẫn tồn tại'
   fi

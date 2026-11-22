@@ -35,6 +35,7 @@ grep -q 'X-ULOK-Managed=true' "$XDG_CONFIG_HOME/autostart/ulok-flameshot.desktop
 grep -q 'existing/' "$GS_STATE"
 [[ "$(grep -o 'custom-keybindings/flameshot/' "$GS_STATE" | wc -l)" == 1 ]]
 grep -q 'ulok-flameshot' "$GS_LOG"
+grep -q '<Primary><Alt>s' "$GS_LOG"
 package_installed() { return 1; }
 install_apt() { return 1; }
 if module_flameshot; then

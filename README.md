@@ -13,7 +13,7 @@ command -v git >/dev/null || { sudo apt-get update && sudo apt-get install -y gi
 ```
 
 - GNOME: dùng **IBus Unikey**, thêm và chọn nguồn nhập; đăng xuất/đăng nhập sau khi sửa để tránh tiến trình Fcitx5 cũ. Không tự xóa cấu hình bộ gõ cũ.
-- Flameshot: cài từ APT, chạy GUI qua native Wayland/portal, tự tạo phím tắt **Ctrl+Shift+S** và autostart. Lần chụp đầu có thể phải cho phép quyền chụp màn hình trong GNOME. Do giới hạn upstream, cần bấm thử thật để xác nhận GUI.
+- Flameshot: cài từ APT, chạy GUI qua native Wayland/portal, tự tạo phím tắt **Ctrl+Alt+S** và autostart. Lần chụp đầu có thể phải cho phép quyền chụp màn hình trong GNOME. Do giới hạn upstream, cần bấm thử thật để xác nhận GUI.
 - Zalo: mặc định bản `chat` AppImage mới nhất trên x86_64, dùng launcher tối ưu IBus/XWayland trên GNOME Wayland; có `ZALO_OZONE_PLATFORM=auto` để thử Electron native Wayland. Repair giữ dữ liệu và không tải lại nếu AppImage còn dùng được.
 - Cấu hình desktop trước khi sửa được sao lưu vào `~/.local/state/ulok/backups/`; nếu bước sửa trả lỗi, script thử khôi phục cấu hình đã lưu. Zalo giữ bản AppImage trước (`*.previous`) khi cập nhật, có sao lưu chat có điều kiện theo dung lượng còn trống.
 - Nếu proxy FPT chặn `git clone` nhưng đã clone Office Kit trước đó, lệnh sẽ dùng bản Office Kit cục bộ. Office Kit **đã kèm installer Zalo**; không cần tải repo Zalo riêng. Khi GitHub Releases bị chặn, bộ cài thử hai mirror cộng đồng với kiểm tra SHA-256 theo upstream; checksum sai sẽ bị loại. Có thể dùng `ZALO_MIRROR_URL` hoặc `ZALO_OFFLINE_APPIMAGE` để chỉ định nguồn được IT cho phép.
@@ -89,7 +89,7 @@ Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`
 | Canon UFR II/UFRII LT | Driver in Canon tùy chọn; tải đúng gói `.tar.gz` chính thức của model rồi truyền `--canon-ufrii-archive PATH`. Script cài các gói Debian đúng kiến trúc; thêm máy in sau trong cấu hình máy in. |
 | VLC, FFmpeg | Phát và chuyển đổi âm thanh/video |
 | GIMP, ImageMagick | Chỉnh sửa và xử lý ảnh |
-| Flameshot | Chụp vùng màn hình; trên GNOME tự gán `Ctrl+Shift+S` chạy `flameshot gui` sau khi cài. Desktop khác cần đặt phím tắt trong Keyboard Shortcuts. |
+| Flameshot | Chụp vùng màn hình; trên GNOME tự gán `Ctrl+Alt+S` chạy `flameshot gui` sau khi cài. Desktop khác cần đặt phím tắt trong Keyboard Shortcuts. |
 | Noto, Liberation fonts | Font Unicode/CJK và tương thích tài liệu |
 | Carlito, Caladea và font aliases | Thay thế gần kích thước Calibri/Cambria; ánh xạ các font Office phổ biến trong tài khoản người dùng |
 | Thunderbird, PDF Arranger | Email desktop và sắp xếp trang PDF |
@@ -136,7 +136,7 @@ bash doctor.sh
 ```
 
 - **Tiếng Việt:** trên Ubuntu GNOME chọn IBus Unikey, kể cả khi phiên bản kit cũ đã cài Fcitx5; trên Linux Mint/Cinnamon dùng Fcitx5. Nếu chưa có bộ gõ đúng, script cài thêm qua APT. GNOME thêm và chọn Unikey trong Input Sources; Fcitx5 giữ các mục có sẵn và đổi bộ gõ mặc định thành Unikey (có sao lưu profile trước khi sửa). Có thể đổi qua tiếng Anh bằng **Super+Space** (GNOME), hoặc phím chuyển bộ gõ của Fcitx5. Sau sửa cần **đăng xuất → đăng nhập** để `im-config` có hiệu lực.
-- **Flameshot:** cài gói nếu thiếu; trên GNOME Wayland bổ sung `xdg-desktop-portal`, backend GNOME và Qt Wayland. Tạo launcher cá nhân `~/.local/bin/ulok-flameshot`, tự chạy khi đăng nhập và gán **Ctrl+Shift+S** trong GNOME. Chỉ cập nhật các tệp kit quản lý; không sửa file `.desktop` của hệ thống và không xóa phím tắt cá nhân khác.
+- **Flameshot:** cài gói nếu thiếu; trên GNOME Wayland bổ sung `xdg-desktop-portal`, backend GNOME và Qt Wayland. Tạo launcher cá nhân `~/.local/bin/ulok-flameshot`, tự chạy khi đăng nhập và gán **Ctrl+Alt+S** trong GNOME. Chỉ cập nhật các tệp kit quản lý; không sửa file `.desktop` của hệ thống và không xóa phím tắt cá nhân khác.
 
 Nếu APT không cài được Flameshot (ví dụ máy đang dùng mirror nội bộ không truy cập được), lệnh `--fix-flameshot` nay trả về lỗi và ghi nguyên nhân vào `setup.log`/`setup-report.txt`, không coi việc chỉ tạo shortcut là cài thành công. Kiểm tra thủ công bằng `sudo apt-get install -y flameshot` và gửi dòng lỗi APT để xác định đúng mirror/phụ thuộc.
 

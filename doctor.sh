@@ -86,11 +86,11 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
     if [[ "${desktop,,}" == *gnome* ]] && has_command gsettings; then
       shortcut_path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
       shortcut_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$shortcut_path"
-      if [[ "$(gsettings get "$shortcut_schema" binding 2>/dev/null)" == "'<Primary><Shift>s'" ]] && \
+      if [[ "$(gsettings get "$shortcut_schema" binding 2>/dev/null)" == "'<Primary><Alt>s'" ]] && \
         [[ "$(gsettings get "$shortcut_schema" command 2>/dev/null)" == *ulok-flameshot* ]]; then
-        status 'Ctrl+Shift+S' PASS 'Flameshot custom shortcut configured'
+        status 'Ctrl+Alt+S' PASS 'Flameshot custom shortcut configured'
       else
-        status 'Ctrl+Shift+S' WARN 'run ./setup.sh --fix-flameshot'
+        status 'Ctrl+Alt+S' WARN 'run ./setup.sh --fix-flameshot'
       fi
     fi
     if has_command pgrep && pgrep -u "$(id -u)" -x flameshot >/dev/null 2>&1; then

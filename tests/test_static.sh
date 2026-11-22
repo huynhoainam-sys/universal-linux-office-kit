@@ -31,7 +31,7 @@ for helper in install-zalo-linux.sh zalo-download.sh zalo-launcher.sh zalo-repai
 done
 grep -q '\.ulok-full-installed' "$ROOT/setup.sh" || fail 'Zalo dedup marker missing'
 grep -q 'install_apt flameshot' "$ROOT/setup.sh" || fail 'Flameshot installer missing'
-grep -q '<Primary><Shift>s' "$ROOT/setup.sh" || fail 'Flameshot shortcut missing'
+grep -q '<Primary><Alt>s' "$ROOT/setup.sh" || fail 'Flameshot shortcut missing'
 grep -q "script --quiet --return --command 'flameshot gui'" "$ROOT/setup.sh" || fail 'Flameshot GNOME Wayland PTY workaround missing'
 grep -q 'ibus-unikey' "$ROOT/setup.sh" || fail 'Vietnamese IBus input missing'
 grep -q 'fcitx5-unikey' "$ROOT/setup.sh" || fail 'Vietnamese Fcitx input missing'
