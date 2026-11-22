@@ -13,8 +13,14 @@ module_vietnamese_input() {
   printf '%s\n' unikey >> "$TEMP/flow"
   [[ "${SIMULATE_UNIKEY_FAILURE:-0}" != 1 ]]
 }
-module_flameshot() { printf '%s\n' flameshot >> "$TEMP/flow"; }
-module_zalo() { printf '%s\n' zalo >> "$TEMP/flow"; }
+module_flameshot() {
+  printf '%s\n' flameshot >> "$TEMP/flow"
+  [[ "${SIMULATE_FLAMESHOT_FAILURE:-0}" != 1 ]]
+}
+module_zalo() {
+  printf '%s\n' zalo >> "$TEMP/flow"
+  [[ "${SIMULATE_ZALO_FAILURE:-0}" != 1 ]]
+}
 module_office() { warn 'WPS download blocked; continue without replacing Office'; }
 module_media() { warn 'Optional codecs unavailable'; }
 module_everyday() { warn 'Optional file previewer unavailable'; }
@@ -25,14 +31,23 @@ main --profile desktop --yes --no-open-report --report "$TEMP/report.txt"
 grep -q '^Warnings: 5$' "$TEMP/report.txt"
 grep -q '^Failures: 0$' "$TEMP/report.txt"
 
-# A single core failure must still allow the two remaining critical apps.
-SIMULATE_UNIKEY_FAILURE=1
-WARNINGS=() FAILURES=()
-: > "$TEMP/flow"
-if main --profile desktop --yes --no-open-report --report "$TEMP/report.txt"; then
-  echo 'FAIL: missing Unikey must result in a visible failure status' >&2
-  exit 1
-fi
-[[ "$(tr '\n' ',' < "$TEMP/flow")" == 'unikey,flameshot,zalo,' ]]
-grep -q '^Failures: 1$' "$TEMP/report.txt"
-echo 'PASS: proxy/optional failures do not block Unikey, Flameshot or Zalo; critical failures remain visible'
+# Every core failure must still allow both other critical apps to run.
+for broken in unikey flameshot zalo; do
+  SIMULATE_UNIKEY_FAILURE=0
+  SIMULATE_FLAMESHOT_FAILURE=0
+  SIMULATE_ZALO_FAILURE=0
+  case "$broken" in
+    unikey) SIMULATE_UNIKEY_FAILURE=1 ;;
+    flameshot) SIMULATE_FLAMESHOT_FAILURE=1 ;;
+    zalo) SIMULATE_ZALO_FAILURE=1 ;;
+  esac
+  WARNINGS=() FAILURES=()
+  : > "$TEMP/flow"
+  if main --profile desktop --yes --no-open-report --report "$TEMP/report.txt"; then
+    echo "FAIL: broken $broken must report a failure" >&2
+    exit 1
+  fi
+  [[ "$(tr '\n' ',' < "$TEMP/flow")" == 'unikey,flameshot,zalo,' ]]
+  grep -q '^Failures: 1$' "$TEMP/report.txt"
+done
+echo 'PASS: proxy/optional/core failures isolated; all remaining apps execute'

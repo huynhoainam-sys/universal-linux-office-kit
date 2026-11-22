@@ -21,6 +21,10 @@ case "$1" in
   list-schemas) printf '%s\n' org.freedesktop.ibus.engine.unikey ;;
   get)
     if [[ "$3" == sources || "$3" == mru-sources ]]; then
+      if [[ -f "$NAMHH_TEST_STATE/get-fail-once" ]]; then
+        rm -f "$NAMHH_TEST_STATE/get-fail-once"
+        exit 1
+      fi
       if [[ -f "$NAMHH_TEST_STATE/invalid" ]]; then printf '%s\n' 'broken GVariant'
       else command cat "$NAMHH_TEST_STATE/$3"; fi
     fi ;;
@@ -42,6 +46,13 @@ printf '%s\n' "[('xkb', 'us'), ('ibus', 'Unikey')]" > "$TEMP/mru-sources"
 bash "$ROOT/scripts/unikey-session-guard.sh"
 [[ "$(wc -l < "$TEMP/settings")" == "$before" ]]
 [[ "$(<"$TEMP/mru-sources")" == "[('xkb', 'us'), ('ibus', 'Unikey')]" ]]
+
+# Autostart can beat the DBus settings service; retry a temporary read failure.
+printf '%s\n' "[('xkb', 'us')]" > "$TEMP/sources"
+touch "$TEMP/get-fail-once"
+bash "$ROOT/scripts/unikey-session-guard.sh"
+[[ "$(<"$TEMP/sources")" == "[('ibus', 'Unikey'), ('xkb', 'us')]" ]]
+before="$(wc -l < "$TEMP/settings")"
 
 # A broken/empty GNOME Input Sources value must not be overwritten.
 printf '%s\n' "[('xkb', 'us')]" > "$TEMP/sources"

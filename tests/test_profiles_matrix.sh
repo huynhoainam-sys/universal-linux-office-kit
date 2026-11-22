@@ -18,4 +18,13 @@ for testcase in minimal:5 office:10 desktop:12 full:16; do
   grep -q '^Dry-run: 1$' "$TEMP/$profile.txt"
   grep -q '^Failures: 0$' "$TEMP/$profile.txt"
 done
+(
+  source "$ROOT/setup.sh"
+  LOG_PATH="$TEMP/windows-like.log"
+  export FORCE_COLOR=1 TERM=xterm-256color NO_COLOR=1
+  require_platform() { ID=ubuntu; VERSION_ID=24.04; return 0; }
+  main --profile desktop --windows-like --dry-run --yes --no-open-report \
+    --report "$TEMP/windows-like.txt"
+) >"$TEMP/windows-like.terminal"
+grep -q '13/13 bước' "$TEMP/windows-like.terminal"
 echo 'PASS: minimal/office/desktop/full have accurate progress totals on safe dry-run'

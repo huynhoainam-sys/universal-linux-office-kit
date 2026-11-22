@@ -84,13 +84,21 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
     fi
     desktop="${XDG_CURRENT_DESKTOP:-}"
     if [[ "${desktop,,}" == *gnome* ]] && has_command gsettings; then
-      shortcut_path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
-      shortcut_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$shortcut_path"
-      if [[ "$(gsettings get "$shortcut_schema" binding 2>/dev/null)" == "'<Primary><Alt>s'" ]] && \
-        [[ "$(gsettings get "$shortcut_schema" command 2>/dev/null)" == *ulok-flameshot* ]]; then
-        status 'Ctrl+Alt+S' PASS 'Flameshot custom shortcut configured'
+      shortcut_ok=0
+      for shortcut_path in \
+        '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/namhh-flameshot/' \
+        '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'; do
+        shortcut_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$shortcut_path"
+        if [[ "$(gsettings get "$shortcut_schema" binding 2>/dev/null)" == "'<Primary><Shift>s'" ]] && \
+          [[ "$(gsettings get "$shortcut_schema" command 2>/dev/null)" == *ulok-flameshot* ]]; then
+          shortcut_ok=1
+          break
+        fi
+      done
+      if (( shortcut_ok )); then
+        status 'Ctrl+Shift+S' PASS 'Flameshot custom shortcut configured'
       else
-        status 'Ctrl+Alt+S' WARN 'run ./setup.sh --fix-flameshot'
+        status 'Ctrl+Shift+S' WARN 'run ./setup.sh --fix-flameshot'
       fi
     fi
     if has_command pgrep && pgrep -u "$(id -u)" -x flameshot >/dev/null 2>&1; then
@@ -111,6 +119,12 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
     fi
   else
     status 'Zalo Linux' OPTIONAL 'full profile / third-party app'
+  fi
+  if [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-outlook-web" ]] && \
+    [[ -f "${XDG_DATA_HOME:-$HOME/.local/share}/applications/namhh-outlook-web.desktop" ]]; then
+    status 'Outlook Web' PASS 'launcher ready; login in your browser'
+  else
+    status 'Outlook Web' OPTIONAL 'run ./setup.sh --fix-outlook'
   fi
   if has_package cnrdrvcups-ufr2 || has_package cnrdrvcups-ufr2-uk || has_package cnrdrvcups-ufr2-us; then
     status 'Canon UFR II' PASS 'driver package installed'

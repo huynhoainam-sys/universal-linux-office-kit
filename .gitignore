@@ -1,4 +1,9 @@
 setup.log
 setup-report.txt
+setup-report.html
+doctor-report.txt
+ubuntu-captures/
+__pycache__/
+*.py[cod]
 *.deb
 *.iso

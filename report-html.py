@@ -23,16 +23,17 @@ APP_GROUPS = (
         ("Máy in CUPS", "Kết nối và quản lý máy in.", ("lpstat",), ("cups",)),
     )),
     ("Tiếng Việt và chụp màn hình", (
-        ("Unikey tiếng Việt", "Gõ tiếng Việt theo VNI hoặc Telex trong ứng dụng.", ("ibus-daemon", "fcitx5"), ("ibus-unikey", "fcitx5-unikey")),
-        ("Flameshot", "Chụp vùng màn hình bằng Ctrl + Alt + S.", ("flameshot",), ("flameshot",)),
+        ("Unikey tiếng Việt", "Gõ tiếng Việt và tự chọn kiểu gõ phù hợp.", ("ibus-daemon", "fcitx5"), ("ibus-unikey", "fcitx5-unikey")),
+        ("Flameshot", "Chụp vùng màn hình bằng Ctrl + Shift + S.", ("flameshot",), ("flameshot",)),
         ("Font văn phòng", "Hiển thị chữ tiếng Việt và tài liệu Word đúng hơn.", (), ("fonts-crosextra-carlito", "fonts-liberation2")),
     )),
     ("Liên lạc và Internet", (
         ("Zalo Linux", "Nhắn tin và trao đổi công việc bằng tài khoản Zalo.", ("zalo-linux",), ()),
+        ("Outlook Microsoft 365 (Web)", "Mở Outlook của công ty qua Edge/Chrome hoặc Firefox; đăng nhập trong trình duyệt.", ("ulok-outlook-web",), ()),
         ("Google Chrome", "Duyệt web, Gmail, Google Drive và họp trực tuyến.", ("google-chrome", "google-chrome-stable"), ("google-chrome-stable",)),
         ("Microsoft Edge", "Duyệt web và dùng Microsoft 365 trên trình duyệt.", ("microsoft-edge", "microsoft-edge-stable"), ("microsoft-edge-stable",)),
         ("Firefox", "Trình duyệt web có sẵn trên nhiều máy Ubuntu.", ("firefox",), ("firefox",)),
-        ("Thunderbird", "Quản lý email như Outlook trên Windows.", ("thunderbird",), ("thunderbird",)),
+        ("Thunderbird", "Ứng dụng email độc lập hỗ trợ nhiều loại tài khoản.", ("thunderbird",), ("thunderbird",)),
         ("Zoom", "Họp video và chia sẻ màn hình.", ("zoom",), ("zoom",)),
     )),
     ("Hình ảnh, dữ liệu và công cụ", (
@@ -73,6 +74,10 @@ def app_installed(name, binaries, packages):
         bindir = Path(os.environ.get("XDG_BIN_HOME", str(Path.home() / ".local/bin")))
         appdir = Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))) / "zalo-linux"
         return (bindir / "zalo-linux").is_file() and (appdir / "Zalo-x86_64.AppImage").is_file()
+    if name == "Outlook Microsoft 365 (Web)":
+        bindir = Path(os.environ.get("XDG_BIN_HOME", str(Path.home() / ".local/bin")))
+        desktop = Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))) / "applications"
+        return (bindir / "ulok-outlook-web").is_file() and (desktop / "namhh-outlook-web.desktop").is_file()
     if name == "Unikey tiếng Việt":
         return pkg_installed("ibus-unikey") or pkg_installed("fcitx5-unikey")
     if name in ("Ổ NTFS và exFAT", "Chia sẻ Windows / NAS"):
@@ -352,15 +357,14 @@ HTML_TEMPLATE = r'''<!doctype html>
     .sim-hint {margin:8px 0 0!important;color:#8fb0cc!important;font-size:11px!important;}
     .sim-preferences {padding:16px;background:#13243c;}
     .sim-preferences .sim-field {margin-bottom:11px;}
-    .typing-pick {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-    .typing-pick input {position:absolute;opacity:0;width:1px;height:1px;}
-    .typing-pick label {cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:8px 17px;
-      border:1px solid #4b6986;border-radius:9px;color:#bed3e8;font-weight:800;font-size:13px;}
-    .typing-pick input:checked + label {background:#1b5a70;border-color:#60d5e7;color:white;}
-    .typing-pick input:focus-visible + label {outline:2px solid #9cedfa;outline-offset:2px;}
-    .typing-pick .sim-case {display:none;flex-basis:100%;margin:5px 0 0;padding:10px;
-      color:#d9f2fc;background:#0c1c30;border-radius:7px;font-size:12px;}
-    #method-telex:checked ~ .case-telex,#method-vni:checked ~ .case-vni {display:block;}
+    .sim-input-menu {margin:0 0 11px;padding:0;border:0;background:transparent;}
+    .sim-input-menu summary {cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+      gap:10px;padding:11px 12px;border:1px solid #4b6986;border-radius:9px;min-height:44px;
+      color:#e8fcff;list-style:none;}
+    .sim-input-menu summary::-webkit-details-marker {display:none;}
+    .sim-input-menu summary:focus-visible {outline:2px solid #9cedfa;outline-offset:2px;}
+    .sim-input-menu[open] summary {border-color:#60d5e7;background:#123e57;}
+    .sim-input-menu .sim-option {margin:3px 0 0;}
     .mode-note {display:flex;align-items:center;gap:8px;margin:15px 0 0;color:#b3d7e6;font-size:12px;}
     .mode-note .icon {color:#79e9b5;}
     .app-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
@@ -441,6 +445,7 @@ HTML_TEMPLATE = r'''<!doctype html>
     <a href="#logout"><svg class="icon" aria-hidden="true"><use href="#i-power"/></svg>Log Out / Restart</a>
     <a href="#unikey"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Hướng dẫn Unikey</a>
     <a href="#zalo"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>Zalo QR</a>
+    <a href="#outlook"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>Outlook Web</a>
     <a href="#apps"><svg class="icon" aria-hidden="true"><use href="#i-apps"/></svg>Ứng dụng</a>
   </nav></div>
   <main class="wrap">
@@ -460,7 +465,7 @@ HTML_TEMPLATE = r'''<!doctype html>
         <div class="step"><span class="number">2</span><strong>Đăng xuất rồi vào lại Ubuntu</strong>
           <p>Để bộ gõ tiếng Việt, biểu tượng Zalo và phím tắt nhận cấu hình mới.</p></div>
         <div class="step"><span class="number">3</span><strong>Kiểm tra bộ gõ Unikey</strong>
-          <p>Bộ cài ưu tiên Unikey. Bạn có thể chọn kiểu gõ Telex hoặc VNI, sau đó thử trong WPS và Zalo.</p></div>
+          <p>Bộ cài ưu tiên Unikey. Kiểm tra nguồn nhập, tùy chỉnh kiểu gõ trong Preferences, rồi thử trong WPS và Zalo.</p></div>
       </div>
     </section>
     <section class="panel" id="logout">
@@ -495,7 +500,7 @@ HTML_TEMPLATE = r'''<!doctype html>
       <span class="section-label">03 / Hướng dẫn Unikey · Input Method</span>
       <h2>Unikey — bộ gõ tiếng Việt ưu tiên</h2>
       <p class="sub">Bộ cài đưa <b>Vietnamese (Unikey)</b> lên đầu danh sách và ưu tiên khi đăng nhập Ubuntu GNOME.
-        Bạn có thể dùng <b>Telex hoặc VNI</b> theo thói quen; với tài liệu hiện đại, nên dùng bảng mã <b>Unicode</b>.</p>
+        Bạn có thể tùy chỉnh kiểu gõ theo thói quen; với tài liệu hiện đại, nên dùng bảng mã <b>Unicode</b>.</p>
       <div class="notice"><strong>Hướng dẫn có thể bấm để xem từng bước.</strong> Đây là mô phỏng các màn hình GNOME/IBus,
         không tự thay đổi cài đặt máy. Tên và vị trí biểu tượng có thể khác nhẹ giữa các phiên bản Ubuntu.</div>
       <div class="click-guide">
@@ -536,19 +541,17 @@ HTML_TEMPLATE = r'''<!doctype html>
               </div><p class="sim-hint">Bấm thử English / Unikey để thấy lựa chọn. Đây chỉ là minh họa; trên Ubuntu thật dùng Super + Space.</p>
           </div>
         </details>
-        <details class="click-step"><summary><span class="number">4</span><span class="step-title">Tùy chỉnh Telex / VNI và Unicode</span>
+        <details class="click-step"><summary><span class="number">4</span><span class="step-title">Tùy chỉnh kiểu gõ Unikey và Unicode</span>
           <svg class="icon step-arrow" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
           <div class="click-body"><p>Khi Unikey đang bật, bấm chỉ báo nguồn nhập → <b>More settings…</b> (hoặc <b>Preferences</b> nếu menu hiện mục này). Trong <b>Settings - ibus-unikey</b>, chọn <b>Input method</b> theo thói quen và <b>Output charset: Unicode</b>.</p>
             <div class="sim-screen"><div class="sim-topbar"><span>Settings - ibus-unikey</span><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg></div>
-              <div class="sim-preferences"><b>Input method:</b>
-                <div class="typing-pick" role="group" aria-label="Thử chọn kiểu gõ trên trang mô phỏng">
-                  <input type="radio" id="method-telex" name="unikey-typing-method" checked><label for="method-telex">Telex</label>
-                  <input type="radio" id="method-vni" name="unikey-typing-method"><label for="method-vni">VNI</label>
-                  <div class="sim-case case-telex">Ví dụ Telex: <b>tieengs vieetj</b> → <b>tiếng việt</b></div>
-                  <div class="sim-case case-vni">Ví dụ VNI: <b>tie6ng1 vie6t5</b> → <b>tiếng việt</b></div>
-                </div>
+              <div class="sim-preferences">
+                <details class="sim-input-menu"><summary><b>Input method:</b><span>Telex <svg class="icon icon-xs" aria-hidden="true"><use href="#i-chevron"/></svg></span></summary>
+                  <div class="sim-option selected"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Telex (ví dụ đang chọn)</div>
+                  <p class="sim-hint">Trên Unikey thật, bấm Input method để xem các kiểu gõ và chọn kiểu bạn quen dùng.</p>
+                </details>
                 <div class="sim-field"><b>Output charset:</b><span class="pill ready"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-check"/></svg>Unicode</span></div>
-                <p class="sim-hint">Bấm Telex/VNI ở trên để xem ví dụ. Lựa chọn trong trang minh họa không thay đổi máy của bạn.</p>
+                <p class="sim-hint">Bấm thử Input method ở trên để xem minh họa. Thao tác trên trang không thay đổi máy của bạn.</p>
               </div></div></div>
         </details>
       </div>
@@ -570,23 +573,39 @@ HTML_TEMPLATE = r'''<!doctype html>
         <li>Đăng nhập lại Ubuntu, mở <b>Zalo Linux</b> từ danh sách ứng dụng, quét lại mã QR mới. Không cần xóa dữ liệu chat hoặc cài lại ứng dụng.</li>
         <li>Nếu vẫn không vào được, có thể do kết nối mạng/proxy doanh nghiệp chặn bước xác thực. Hãy nhờ IT kiểm tra; không tự tắt bảo vệ mạng.</li>
       </ol>
-      <div class="tip">Flameshot: bấm <span class="key">Ctrl</span> + <span class="key">Alt</span> + <span class="key">S</span> để chọn vùng màn hình. Lần đầu trên Wayland có thể hiện hộp thoại cho phép chia sẻ/chụp màn hình.</div>
+      <div class="tip">Flameshot: bấm <span class="key">Ctrl</span> + <span class="key">Shift</span> + <span class="key">S</span> để chọn vùng màn hình. Lần đầu trên Wayland có thể hiện hộp thoại cho phép chia sẻ/chụp màn hình.</div>
+    </section>
+    <section class="panel" id="outlook">
+      <span class="section-label">05 / Microsoft 365 · Mail</span>
+      <h2>Outlook công việc trên Ubuntu</h2>
+      <p class="sub">Mở <b>Microsoft Outlook (Web)</b> trong danh sách ứng dụng để dùng tài khoản email công ty. Kit không yêu cầu hoặc lưu mật khẩu Microsoft.</p>
+      <div class="steps">
+        <div class="step"><span class="number">1</span><strong>Mở Outlook Web</strong>
+          <p>Nhấn <span class="key">Super</span>, tìm <b>Microsoft Outlook (Web)</b> và đăng nhập trực tiếp trên trang Microsoft 365.</p></div>
+        <div class="step"><span class="number">2</span><strong>Cài thành ứng dụng riêng nếu muốn</strong>
+          <p>Trong Edge chọn menu <b>… → Apps → Install this site as an app</b>. Trong Chrome tìm <b>Install Outlook</b> khi tùy chọn xuất hiện.</p></div>
+        <div class="step"><span class="number">3</span><strong>Firefox vẫn sử dụng được</strong>
+          <p>Nếu chỉ có Firefox, Outlook mở trên trình duyệt. Một số tính năng khác bản Outlook Windows; kết nối Internet cần thiết để đồng bộ.</p></div>
+      </div>
+      <div class="tip"><strong>Lưu ý:</strong> Đây là Outlook Web chính thức, không phải file cài Outlook .deb hay ứng dụng Windows chạy qua Wine.</div>
     </section>
     <section class="panel" id="apps">
-      <span class="section-label">05 / Ứng dụng · Installed apps</span>
+      <span class="section-label">06 / Ứng dụng · Installed apps</span>
       <h2>Ứng dụng của bạn và công dụng</h2>
       <p class="sub">Trạng thái được kiểm tra trên máy. “Chưa cài” không đồng nghĩa có lỗi.</p>
       <div class="app-grid">${APP_TABLES}</div>
     </section>
     <section class="panel">
-      <span class="section-label">06 / Windows → Ubuntu · Quick reference</span>
+      <span class="section-label">07 / Windows → Ubuntu · Quick reference</span>
       <h2>Đổi từ Windows sang Ubuntu: nhớ nhanh</h2>
       <div class="pairs">
         <div><b>Start menu (Windows)</b> → Activities / phím Super</div>
         <div><b>File Explorer</b> → Files / Tệp</div>
         <div><b>C:\Users\TênBạn</b> → Home / Thư mục cá nhân</div>
         <div><b>Microsoft Word / Excel</b> → WPS Office / LibreOffice</div>
-        <div><b>Windows + Shift + S</b> → Ctrl + Alt + S (Flameshot)</div>
+        <div><b>Outlook (Windows)</b> → Microsoft Outlook (Web) · Chrome/Edge/Firefox</div>
+        <div><b>Paint</b> → Pinta (nếu kho ứng dụng có gói)</div>
+        <div><b>Windows + Shift + S</b> → Ctrl + Shift + S (Flameshot)</div>
         <div><b>Alt + Tab, Ctrl + C/V, Ctrl + S</b> → dùng giống Windows</div>
         <div><b>Windows Network Drive / NAS</b> → Files → Other Locations → Connect to Server → <code>smb://server/share</code></div>
         <div><b>Windows Backup</b> → Backups; tự chọn nơi lưu bản sao trước khi bật sao lưu định kỳ</div>
@@ -595,7 +614,7 @@ HTML_TEMPLATE = r'''<!doctype html>
       </div>
     </section>
     <section class="panel">
-      <span class="section-label">07 / Dành cho IT · Technical details</span>
+      <span class="section-label">08 / Dành cho IT · Technical details</span>
       <h2>Chi tiết cài đặt</h2>
       <p class="sub">Phần này dành cho IT nếu cần hỗ trợ. Người dùng thông thường không phải thao tác gì với các đường dẫn.</p>
       <details><summary>Xem cảnh báo và thông tin kỹ thuật</summary>

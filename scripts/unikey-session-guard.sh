@@ -24,9 +24,15 @@ PY
 [[ -n "$engine" ]] || exit 0
 
 schema='org.gnome.desktop.input-sources'
-for attempt in 1 2 3; do
+for attempt in {1..10}; do
   if [[ "$(gsettings writable "$schema" sources 2>/dev/null || true)" == true ]]; then
-    raw="$(gsettings get "$schema" sources 2>/dev/null || true)"
+    # GNOME autostart may run before the session settings DBus service is ready.
+    # A failed/blank read is transient; do not silently give up on the first login.
+    raw="$(gsettings get "$schema" sources 2>/dev/null)" || raw=''
+    if [[ -z "$raw" ]]; then
+      (( attempt == 10 )) || sleep 2
+      continue
+    fi
     updated="$(python3 - "$raw" "$engine" <<'PY'
 import ast
 import sys
@@ -67,10 +73,14 @@ PY
           [[ -z "$preferred" ]] || gsettings set "$schema" mru-sources "$preferred" || true
         fi
         printf '%s\n' 'NAMHH: restored missing Unikey input source (priority first)'
+        exit 0
       fi
+      # Retry when the session bus becomes writable but refuses an early write.
+      (( attempt == 10 )) || sleep 2
+      continue
     fi
     exit 0
   fi
-  sleep 2
+  (( attempt == 10 )) || sleep 2
 done
 exit 0

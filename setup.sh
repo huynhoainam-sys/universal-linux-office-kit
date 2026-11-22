@@ -17,6 +17,8 @@ UPDATE_ZALO=0
 FIX_ZALO_LOGIN=0
 REPAIR_DESKTOP=0
 FIX_OFFICE=0
+FIX_OUTLOOK=0
+WINDOWS_LIKE=0
 ZALO_VARIANT='chat'
 OFFICE_SECONDARY='auto'
 BACKUP_DIR=''
@@ -33,6 +35,7 @@ UI_STAGE=0
 UI_TOTAL=0
 UI_STAGE_WARNINGS=0
 UI_STAGE_FAILURES=0
+APT_OFFLINE=0
 UI_RESET=$'\033[0m'
 # NAMHH dark-tech palette: navy terminal, soft cyan/blue and one violet accent.
 # Colors disappear for pipes, redirected logs, NO_COLOR, and TERM=dumb.
@@ -128,6 +131,8 @@ Usage: ./setup.sh [options]
   --update-zalo                 Update Zalo from its verified upstream release
   --repair-desktop              Repair Vietnamese input, Flameshot GUI and Zalo
   --fix-office                  Check office suites; prefer WPS, keep at most 2 new suites
+  --fix-outlook                 Create/repair the Outlook Web launcher (no native .deb)
+  --windows-like                Opt in to Windows-style GNOME titlebar buttons
   --zalo-variant chat|full      Zalo package (default: chat; full is legacy)
   --office-secondary auto|libreoffice|genoffice  Second office suite (default: auto)
   --report PATH                  Write report to PATH
@@ -203,6 +208,7 @@ backup_desktop_settings() {
     gsettings get org.gnome.desktop.input-sources sources > "$BACKUP_DIR/gnome-input-sources.txt" 2>/dev/null || true
     gsettings get org.gnome.desktop.input-sources mru-sources > "$BACKUP_DIR/gnome-input-mru-sources.txt" 2>/dev/null || true
     gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings > "$BACKUP_DIR/gnome-shortcuts.txt" 2>/dev/null || true
+    gsettings get org.gnome.desktop.wm.preferences button-layout > "$BACKUP_DIR/gnome-button-layout.txt" 2>/dev/null || true
   fi
   log "Desktop settings backup: $BACKUP_DIR"
 }
@@ -231,6 +237,9 @@ restore_desktop_settings() {
     if [[ -s "$BACKUP_DIR/gnome-shortcuts.txt" ]]; then
       gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "$(<"$BACKUP_DIR/gnome-shortcuts.txt")" || warn 'Không thể khôi phục shortcut list'
     fi
+    if [[ -s "$BACKUP_DIR/gnome-button-layout.txt" ]]; then
+      gsettings set org.gnome.desktop.wm.preferences button-layout "$(<"$BACKUP_DIR/gnome-button-layout.txt")" || warn 'Không thể khôi phục nút cửa sổ'
+    fi
   fi
   warn "Đã thử khôi phục cấu hình desktop trước sửa từ $BACKUP_DIR. Các gói APT đã cài không bị gỡ."
 }
@@ -253,7 +262,7 @@ repair_package_state() {
   log 'Repairing package state before installation'
   run sudo dpkg --configure -a || warn 'dpkg --configure -a cần xử lý thủ công'
   apt_run -f install -y || warn 'apt-get -f install thất bại; các bước sau có thể bị bỏ qua'
-  apt_run update || { warn 'APT update bị proxy/mirror chặn; thử cài từ cache hiện có'; return 1; }
+  apt_run update || { APT_OFFLINE=1; warn 'APT update bị proxy/mirror chặn; thử cài từ cache hiện có'; return 1; }
 }
 
 install_apt() {
@@ -267,7 +276,25 @@ install_apt() {
     log "APT: tất cả gói đã có, bỏ qua (${packages[*]})"
     return 0
   fi
-  apt_run install -y --no-install-recommends "${missing[@]}" || { warn "Chưa cài được: ${missing[*]}"; return 1; }
+  if apt_run install -y --no-install-recommends "${missing[@]}"; then return 0; fi
+  warn "APT cài theo nhóm thất bại; thử riêng từng gói để không chặn ứng dụng khác"
+  local failed=0
+  for package in "${missing[@]}"; do
+    # The failed batch may already have installed some packages.
+    package_installed "$package" && continue
+    if (( APT_OFFLINE )); then
+      apt_run install -y --no-download --no-install-recommends "$package" || {
+        warn "Không cài được từ cache: $package"
+        failed=1
+      }
+    else
+      apt_run install -y --no-install-recommends "$package" || {
+        warn "Không cài được: $package"
+        failed=1
+      }
+    fi
+  done
+  return "$failed"
 }
 
 package_installed() {
@@ -282,38 +309,103 @@ desktop_is_cinnamon() {
   [[ "${desktop,,}" == *cinnamon* ]]
 }
 
+download_two_channels() {
+  # Channel 1: curl; channel 2: wget. Both respect the machine's proxy policy.
+  # A second source is permitted only for a release with a pinned SHA-256.
+  local primary="$1" target="$2" digest="${3:-}" mirror="${4:-}"
+  local url client actual expected=''
+  local -a sources=("$primary")
+  [[ "$primary" == https://* ]] || { warn 'Nguồn tải chính không dùng HTTPS'; return 1; }
+  if [[ "$digest" =~ ^(sha256:)?([a-fA-F0-9]{64})$ ]]; then
+    expected="${BASH_REMATCH[2],,}"
+  elif [[ -n "$digest" ]]; then
+    warn 'Checksum SHA-256 không hợp lệ; không tải file'
+    return 1
+  fi
+  if [[ -n "$mirror" ]]; then
+    [[ -n "$expected" && "$mirror" == https://* ]] || {
+      warn 'Nguồn dự phòng yêu cầu HTTPS và SHA-256 đã xác minh'
+      return 1
+    }
+    sources+=("$mirror")
+  fi
+  for url in "${sources[@]}"; do
+    for client in curl wget; do
+      if ! command -v "$client" >/dev/null 2>&1; then continue; fi
+      rm -f -- "$target"
+      log "Tải qua ${client} · $([[ "$url" == "$primary" ]] && echo 'nguồn chính' || echo 'nguồn dự phòng')"
+      if [[ "$client" == curl ]]; then
+        run curl --fail --location --silent --show-error --connect-timeout 20 --max-time 600 --retry 1 -o "$target" "$url" || continue
+      else
+        run wget --quiet --timeout=25 --tries=2 --output-document="$target" "$url" || continue
+      fi
+      [[ -s "$target" ]] || continue
+      if [[ -n "$expected" ]]; then
+        actual="$(sha256sum "$target" | awk '{print $1}')"
+        if [[ "${actual,,}" != "$expected" ]]; then
+          log "WARN: Kênh ${client} trả về SHA-256 không khớp; thử kênh khác"
+          continue
+        fi
+      fi
+      return 0
+    done
+  done
+  rm -f -- "$target"
+  return 1
+}
+
 install_deb_url() {
-  local name="$1" url="$2" digest="${3:-}" target
-  target="${TMPDIR:-/tmp}/${name}.deb"
+  local name="$1" url="$2" digest="${3:-}" mirror="${4:-}" target_dir target result=0
   if (( ! DRY_RUN )) && package_installed "$name"; then
     log "Already installed: $name; skipping download"
     return 0
   fi
   log "Downloading official package: $name"
   if (( DRY_RUN )); then
-    log "+ curl -fL --retry 3 -o $target $url"
+    log "+ curl/wget verified download -o <temporary .deb> $url"
+    [[ -z "$mirror" ]] || log '+ mirror source: enabled when pinned SHA-256 matches'
     [[ -z "$digest" ]] || log "+ sha256sum -c ($digest)"
-    log "+ sudo apt-get install -y $target"
+    log '+ sudo apt-get install -y <verified temporary .deb>'
     return 0
   fi
-  run curl -fLSs --show-error --connect-timeout 20 --max-time 600 --retry 2 --retry-delay 2 -o "$target" "$url" || { warn "Không tải được: $name"; return 1; }
-  if [[ -n "$digest" ]] && ! printf '%s  %s\n' "$digest" "$target" | sha256sum --check --status; then
+  # A shared /tmp/wps-office.deb could be replaced by another local process.
+  # Use a private directory so retries never read or overwrite someone else's file.
+  target_dir="$(mktemp -d "${TMPDIR:-/tmp}/ulok-${name}.XXXXXXXX")" || { warn "Không tạo được thư mục tải tạm: $name"; return 1; }
+  target="$target_dir/$name.deb"
+  if ! download_two_channels "$url" "$target" "$digest" "$mirror"; then
+    warn "Không tải được: $name"
+    result=1
+  elif [[ -n "$digest" ]] && ! printf '%s  %s\n' "$digest" "$target" | sha256sum --check --status; then
     warn "SHA-256 không khớp: $name; không cài gói không xác minh"
-    return 1
+    result=1
+  elif ! apt_run install -y "$target"; then
+    warn "Không cài được: $name"
+    result=1
   fi
-  apt_run install -y "$target" || { warn "Không cài được: $name"; return 1; }
-  rm -f "$target"
+  rm -f -- "$target"
+  rmdir -- "$target_dir"
+  return "$result"
 }
 
 install_microsoft_repo() {
-  local key_tmp="${TMPDIR:-/tmp}/microsoft.asc"
+  local key_tmp
   if (( DRY_RUN )); then
     log "+ configure packages.microsoft.com official repository"
     return 0
   fi
-  curl -fsSL --retry 3 https://packages.microsoft.com/keys/microsoft.asc -o "$key_tmp" || { fail 'Microsoft signing key download failed'; return 1; }
+  key_tmp="$(mktemp "${TMPDIR:-/tmp}/ulok-microsoft-key.XXXXXXXX")" || { fail 'Cannot create Microsoft key temporary file'; return 1; }
+  if ! curl -fsSL --retry 3 https://packages.microsoft.com/keys/microsoft.asc -o "$key_tmp"; then
+    rm -f -- "$key_tmp"
+    fail 'Microsoft signing key download failed'
+    return 1
+  fi
   sudo install -d -m 0755 /etc/apt/keyrings
-  sudo gpg --dearmor --yes -o /etc/apt/keyrings/microsoft.gpg "$key_tmp" || { fail 'Microsoft signing key setup failed'; return 1; }
+  if ! sudo gpg --dearmor --yes -o /etc/apt/keyrings/microsoft.gpg "$key_tmp"; then
+    rm -f -- "$key_tmp"
+    fail 'Microsoft signing key setup failed'
+    return 1
+  fi
+  rm -f -- "$key_tmp"
   sudo chmod a+r /etc/apt/keyrings/microsoft.gpg
   sudo tee /etc/apt/sources.list.d/microsoft.sources >/dev/null <<'EOF'
 Types: deb
@@ -384,7 +476,7 @@ module_office_suites() {
       arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
       if [[ "$arch" == amd64 ]]; then
         # Pinned to the WPS package and digest used in the Flathub packaging manifest.
-        install_deb_url wps-office 'https://wdl1.pcfg.cache.wpscdn.com/wpsdl/wpsoffice/download/linux/11723/wps-office_11.1.0.11723.XA_amd64.deb' 'fe6326210f69d94efdbf2728914d293036be391b93a614f58cd0e1ff1d4923b3' || warn 'Không cài được WPS; giữ các bộ đã có.'
+        install_deb_url wps-office 'https://wdl1.pcfg.cache.wpscdn.com/wpsdl/wpsoffice/download/linux/11723/wps-office_11.1.0.11723.XA_amd64.deb' 'fe6326210f69d94efdbf2728914d293036be391b93a614f58cd0e1ff1d4923b3' "${ULOK_WPS_MIRROR_URL:-}" || warn 'Không cài được WPS; giữ các bộ đã có.'
       else
         warn "WPS .deb dành cho amd64; máy hiện dùng $arch"
       fi
@@ -489,9 +581,13 @@ module_genoffice() {
     return 0
   fi
   if ! curl --fail --location --retry 2 --retry-delay 2 --connect-timeout 20 "$asset_url" -o "$deb"; then
-    rm -rf -- "$dir"
-    warn 'GenOffice release asset download failed; check github.com/Releases network access'
-    return 0
+    rm -f -- "$deb"
+    log 'GenOffice: curl bị chặn; thử kênh wget cùng release chính thức'
+    if ! command -v wget >/dev/null 2>&1 || ! run wget --quiet --timeout=25 --tries=2 --output-document="$deb" "$asset_url"; then
+      rm -rf -- "$dir"
+      warn 'GenOffice release asset download failed on both channels; check github.com/Releases network access'
+      return 0
+    fi
   fi
   if [[ "${digest#sha256:}" != "$(sha256sum "$deb" | awk '{print $1}')" ]]; then
     rm -rf -- "$dir"
@@ -644,7 +740,7 @@ PY
     return 1
   fi
   log "IBus Unikey engine available: $engine"
-  # Never force Telex/VNI on a working system: users choose their own typing
+  # Never force a typing method on a working system: users choose their own
   # method through the real IBus-Unikey preferences UI.
   if desktop_is_gnome && command -v gsettings >/dev/null; then
     current="$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null)" || current=''
@@ -657,7 +753,7 @@ if raw.startswith('@a(ss) '):
 try:
     sources = ast.literal_eval(raw)
     assert isinstance(sources, list)
-    assert all(isinstance(x, tuple) and len(x) == 2 for x in sources)
+    assert all(isinstance(x, tuple) and len(x) == 2 and all(isinstance(v, str) for v in x) for x in sources)
 except (ValueError, SyntaxError, AssertionError):
     sys.exit(0)
 item = ('ibus', sys.argv[2])
@@ -801,12 +897,82 @@ module_media() {
 module_everyday() {
   log 'Module: everyday desktop'
   install_apt file-roller deja-dup baobab gnome-disk-utility \
-    ntfs-3g exfatprogs gvfs-backends || true
+    ntfs-3g exfatprogs gvfs-backends xdg-user-dirs xdg-user-dirs-gtk || true
   install_apt gstreamer1.0-plugins-good gstreamer1.0-libav || true
   if desktop_is_gnome; then
-    install_apt gnome-sushi gnome-tweaks || true
+    install_apt gnome-sushi gnome-tweaks gnome-calculator || true
   fi
+  install_apt pinta || warn 'Paint tương tự Windows (Pinta) chưa cài được; các app khác vẫn hoạt động'
   install_apt remmina remmina-plugin-rdp remmina-plugin-vnc || true
+  module_outlook_web || warn 'Outlook Web launcher chưa sẵn sàng; các ứng dụng khác không bị ảnh hưởng'
+}
+
+module_windows_like() {
+  log 'Module: optional Windows-like window controls'
+  if ! desktop_is_gnome; then
+    warn 'Nút cửa sổ Windows-like chỉ áp dụng GNOME; không thay đổi Cinnamon/Mint'
+    return 0
+  fi
+  if (( DRY_RUN )); then
+    log '+ enable minimize, maximize and close buttons in GNOME titlebars'
+    return 0
+  fi
+  if ! command -v gsettings >/dev/null || \
+    [[ "$(gsettings writable org.gnome.desktop.wm.preferences button-layout 2>/dev/null || true)" != true ]]; then
+    warn 'Không sửa được nút cửa sổ GNOME; giữ nguyên giao diện hiện tại'
+    return 1
+  fi
+  local current
+  current="$(gsettings get org.gnome.desktop.wm.preferences button-layout 2>/dev/null)" || {
+    warn 'Không đọc được vị trí nút cửa sổ; giữ nguyên'
+    return 1
+  }
+  if [[ "$current" == *minimize* && "$current" == *maximize* && "$current" == *close* ]]; then
+    log 'GNOME titlebar already includes minimize / maximize / close'
+    return 0
+  fi
+  gsettings set org.gnome.desktop.wm.preferences button-layout ':minimize,maximize,close' || {
+    warn 'Không đổi được nút cửa sổ; bản sao lưu vẫn được giữ'
+    return 1
+  }
+  log 'PASS: GNOME titlebar now has minimize / maximize / close, like Windows'
+}
+
+module_outlook_web() {
+  log 'Module: Microsoft Outlook Web launcher'
+  if (( DRY_RUN )); then
+    log '+ create Outlook Web app launcher (official Microsoft 365, no downloaded executable)'
+    return 0
+  fi
+  local source="$ROOT_DIR/scripts/outlook-web-launcher.sh"
+  local launcher="${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-outlook-web"
+  local entry="${XDG_DATA_HOME:-$HOME/.local/share}/applications/namhh-outlook-web.desktop"
+  [[ -s "$source" ]] && bash -n "$source" || { warn 'Thiếu hoặc lỗi Outlook launcher'; return 1; }
+  if [[ -e "$launcher" ]] && ! grep -q '^# Managed by Universal Linux Office Kit$' "$launcher"; then
+    warn "Giữ nguyên launcher cá nhân: $launcher"
+    return 1
+  fi
+  if [[ -e "$entry" ]] && ! grep -q '^X-ULOK-Managed=true$' "$entry"; then
+    warn "Giữ nguyên desktop entry cá nhân: $entry"
+    return 1
+  fi
+  mkdir -p -- "$(dirname -- "$launcher")" "$(dirname -- "$entry")"
+  install -m 0755 -- "$source" "$launcher"
+  cat > "$entry" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Microsoft Outlook (Web)
+Comment=Open Outlook Microsoft 365 in your browser
+Exec=$launcher
+Icon=internet-mail
+Terminal=false
+Categories=Network;Email;Office;
+X-ULOK-Managed=true
+EOF
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$(dirname -- "$entry")" >/dev/null 2>&1 || true
+  fi
+  log 'PASS: Outlook Web launcher ready; Microsoft 365 login stays in the user browser'
 }
 
 module_flameshot() {
@@ -856,7 +1022,7 @@ start_flameshot_daemon() {
 }
 
 configure_flameshot_shortcut() {
-  log 'Configuring Flameshot shortcut: Ctrl+Alt+S'
+  log 'Configuring Flameshot shortcut: Ctrl+Shift+S'
   if (( DRY_RUN )); then
     log '+ create user Flameshot launcher/autostart and configure GNOME shortcut'
     return 0
@@ -911,14 +1077,30 @@ EOF
     warn "Giữ nguyên autostart tự tạo: $autostart"
   fi
   if ! desktop_is_gnome; then
-    warn "Tạo launcher $launcher; tự gán Ctrl+Alt+S trong Keyboard Shortcuts"
+    warn "Tạo launcher $launcher; tự gán Ctrl+Shift+S trong Keyboard Shortcuts"
     return 0
   fi
   command -v gsettings >/dev/null || { warn 'Không có gsettings; hãy tạo phím tắt Flameshot thủ công'; return 0; }
-  local schema='org.gnome.settings-daemon.plugins.media-keys' path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
+  local schema='org.gnome.settings-daemon.plugins.media-keys'
+  local legacy_path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
+  local path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/namhh-flameshot/'
   local key_schema='org.gnome.settings-daemon.plugins.media-keys.custom-keybinding'
-  local current
-  current="$(gsettings get "$schema" custom-keybindings 2>/dev/null)" || { warn 'Không đọc được phím tắt GNOME'; return 0; }
+  local current legacy_command existing_command
+  current="$(gsettings get "$schema" custom-keybindings 2>/dev/null)" || { warn 'Không đọc được phím tắt GNOME'; return 1; }
+  [[ "$current" == *']' ]] || { warn 'Danh sách phím tắt GNOME không hợp lệ; giữ nguyên'; return 1; }
+  # Keep upgrading the old key only if the command proves that Office Kit owns it.
+  # An unrelated user-defined /flameshot/ key is never replaced by this kit.
+  if [[ "$current" == *"'$legacy_path'"* ]]; then
+    legacy_command="$(gsettings get "$key_schema:$legacy_path" command 2>/dev/null || true)"
+    [[ "$legacy_command" != *ulok-flameshot* ]] || path="$legacy_path"
+  fi
+  if [[ "$current" == *"'$path'"* ]]; then
+    existing_command="$(gsettings get "$key_schema:$path" command 2>/dev/null || true)"
+    if [[ "$existing_command" != *ulok-flameshot* && "$existing_command" != "''" ]]; then
+      warn "Phím tắt $path thuộc cấu hình khác; không ghi đè"
+      return 1
+    fi
+  fi
   # Keep all existing custom shortcuts; add this path only once.
   if [[ "$current" != *"'$path'"* ]]; then
     if [[ "$current" == '@as []' || "$current" == '[]' ]]; then
@@ -931,7 +1113,7 @@ EOF
   fi
   gsettings set "$key_schema:$path" name 'Flameshot' && \
     gsettings set "$key_schema:$path" command "$launcher" && \
-    gsettings set "$key_schema:$path" binding '<Primary><Alt>s' || warn 'Không gán được Ctrl+Alt+S cho Flameshot'
+    gsettings set "$key_schema:$path" binding '<Primary><Shift>s' || { warn 'Không gán được Ctrl+Shift+S cho Flameshot'; return 1; }
   if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
     warn 'GNOME Wayland: nếu Flameshot báo Unable to capture screen, hãy cho phép Share trong portal; thử Ubuntu on Xorg nếu lỗi vẫn tồn tại'
   fi
@@ -1172,6 +1354,8 @@ main() {
       --update-zalo) UPDATE_ZALO=1; shift ;;
       --repair-desktop) REPAIR_DESKTOP=1; shift ;;
       --fix-office) FIX_OFFICE=1; shift ;;
+      --fix-outlook) FIX_OUTLOOK=1; shift ;;
+      --windows-like) WINDOWS_LIKE=1; shift ;;
       --zalo-variant) ZALO_VARIANT="${2:?Missing Zalo variant}"; shift 2 ;;
       --office-secondary) OFFICE_SECONDARY="${2:?Missing office secondary}"; shift 2 ;;
       --report) REPORT_PATH="${2:?Missing report path}"; shift 2 ;;
@@ -1189,7 +1373,7 @@ main() {
     if [[ "$REPORT_PATH" == *.txt ]]; then REPORT_HTML_PATH="${REPORT_PATH%.txt}.html"
     else REPORT_HTML_PATH="${REPORT_PATH}.html"; fi
   fi
-  if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; FIX_OFFICE=1; fi
+  if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; FIX_OFFICE=1; FIX_OUTLOOK=1; fi
   if (( FIX_ZALO_LOGIN )); then FIX_ZALO=1; UPDATE_ZALO=1; fi
   ui_init
   ui_banner
@@ -1198,13 +1382,14 @@ main() {
     return 2
   fi
   require_platform || { write_report; return 1; }
-  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE )); then
-    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
+  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE || FIX_OUTLOOK )); then
+    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + FIX_OUTLOOK + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
     ui_stage 'Sao lưu cấu hình trước khi sửa'
     backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
     if (( FIX_OFFICE )); then ui_stage 'Kiểm tra Office · ưu tiên WPS, tối đa 2 bộ'; module_office_suites || fail 'Không thể kiểm tra bộ Office'; fi
+    if (( FIX_OUTLOOK )); then ui_stage 'Outlook Microsoft 365 · ứng dụng Web'; module_outlook_web || fail 'Outlook Web launcher chưa hoàn tất'; fi
     if (( FIX_UNIKEY )); then ui_stage 'Sửa bộ gõ tiếng Việt'; module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
-    if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Alt+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
+    if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Shift+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
     if (( FIX_ZALO || UPDATE_ZALO )); then
       ui_stage 'Zalo Linux AppImage'
       if module_zalo; then
@@ -1240,6 +1425,7 @@ main() {
   UI_TOTAL=5
   if [[ "$PROFILE" == office || "$PROFILE" == desktop || "$PROFILE" == full ]]; then ((UI_TOTAL += 5)); fi
   if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then ((UI_TOTAL += 2)); fi
+  if (( WINDOWS_LIKE )) && [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then ((UI_TOTAL += 1)); fi
   if [[ "$PROFILE" == full ]]; then ((UI_TOTAL += 4)); fi
   ui_stage 'Kiểm tra và sửa trạng thái APT/dpkg'
   repair_package_state || true
@@ -1251,7 +1437,7 @@ main() {
     # Establish the three user-critical apps before optional Office/media installs.
     ui_stage 'UniKey · bộ gõ tiếng Việt và tự phục hồi phiên'
     module_vietnamese_input || fail 'UniKey chưa được cấu hình; tiếp tục cài các ứng dụng còn lại'
-    ui_stage 'Flameshot · chụp màn hình Ctrl+Alt+S'
+    ui_stage 'Flameshot · chụp màn hình Ctrl+Shift+S'
     module_flameshot || fail 'Flameshot chưa hoàn tất; tiếp tục cài các ứng dụng còn lại'
     if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then
       ui_stage 'Zalo Linux · ứng dụng chat'
@@ -1271,6 +1457,10 @@ main() {
   if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then
     ui_stage 'Tiện ích Windows → Ubuntu · sao lưu, ổ đĩa, chia sẻ'
     module_everyday
+    if (( WINDOWS_LIKE )); then
+      ui_stage 'Tùy chọn nút cửa sổ tương tự Windows'
+      module_windows_like || warn 'Tùy chỉnh Windows-like chưa hoàn tất; không ảnh hưởng cài app'
+    fi
   fi
   if [[ "$PROFILE" == full ]]; then
     ui_stage 'Công cụ lập trình'

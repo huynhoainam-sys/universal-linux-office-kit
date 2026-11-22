@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # GNOME 22.04/24.04: prioritize Unikey without writing the deprecated current
-# key, deleting other sources, or resetting the user's Telex/VNI preference.
+# key, deleting other sources, or resetting the user's typing preference.
 set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMP="$(mktemp -d)"
@@ -47,4 +47,4 @@ printf '%s\n' 'broken GVariant' > "$TEMP/sources"
 configure_ibus_unikey
 [[ "$(<"$TEMP/sources")" == 'broken GVariant' ]]
 [[ "$(wc -l < "$TEMP/settings")" == "$before" ]]
-echo 'PASS: GNOME prioritizes Unikey, preserves other sources and Telex/VNI preferences'
+echo 'PASS: GNOME prioritizes Unikey, preserves other sources and typing preferences'

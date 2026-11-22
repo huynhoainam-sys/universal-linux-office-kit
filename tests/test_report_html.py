@@ -32,8 +32,8 @@ class HtmlReportTests(unittest.TestCase):
                 "<!doctype html>", "lang=\"vi\"", "WPS Office", "GenOffice",
                 "Flameshot", "Ctrl", "Log Out", "Restart", "Zalo",
                 "Quick Settings", "Log Out…", "Restart…", "Add Input Source",
-                "Output charset:", "Scan QR Code", "Telex", "VNI",
-                "tie6ng1 vie6t5", "Windows", "huynhoainam@gmail.com",
+                "Output charset:", "Scan QR Code", "Input method:",
+                "Windows", "huynhoainam@gmail.com",
             ):
                 self.assertIn(phrase, content)
             self.assertIn("&lt;script&gt;alert", content)
@@ -49,9 +49,12 @@ class HtmlReportTests(unittest.TestCase):
             self.assertIn('class="brand-mark"', content)
             self.assertIn('OFFLINE READY', content)
             self.assertIn('id="unikey"', content)
+            self.assertIn('id="outlook"', content)
+            self.assertIn('Microsoft Outlook (Web)', content)
             self.assertIn('Hướng dẫn Unikey', content)
-            self.assertIn('id="method-telex"', content)
-            self.assertIn('id="method-vni"', content)
+            self.assertIn('class="sim-input-menu"', content)
+            self.assertNotIn('id="method-vni"', content)
+            self.assertNotIn('Ví dụ VNI:', content)
             self.assertIn('class="click-guide"', content)
             self.assertEqual(content.count('<details class="click-step"'), 4)
             self.assertIn('for="sim-add-unikey"', content)

@@ -19,29 +19,32 @@ Giao diện đồng bộ **NAMHH / AI Control Center**: Terminal nền navy đ�
 | Tự chuẩn bị | Dùng để làm gì? |
 |---|---|
 | **WPS Office** ưu tiên, thêm LibreOffice hoặc GenOffice khi cần | Soạn Word, Excel, PowerPoint, PDF; tối đa **2 bộ Office được bổ sung** |
-| **Unikey** (IBus trên Ubuntu GNOME) | Gõ tiếng Việt Telex hoặc VNI |
-| **Flameshot — Ctrl + Alt + S** | Chụp một vùng màn hình |
+| **Unikey** (IBus trên Ubuntu GNOME) | Gõ tiếng Việt, tự chọn kiểu gõ trong Preferences |
+| **Flameshot — Ctrl + Shift + S** | Chụp một vùng màn hình |
 | **Zalo Linux** | Chat bằng ứng dụng desktop; giữ dữ liệu cũ và hỗ trợ nguồn tải thay thế có kiểm tra SHA-256 |
+| **Microsoft Outlook (Web)** | Mở email Microsoft 365 bằng Edge/Chrome hoặc Firefox; có thể cài PWA từ trình duyệt |
 | **Bộ tiện ích dùng hằng ngày** | Giải nén, xem trước tệp, sao lưu tài liệu, mở ổ NTFS/exFAT, chia sẻ Windows/NAS, xem dung lượng ổ đĩa, Remote Desktop |
 | **Báo cáo HTML** | Tự mở trên trình duyệt; giải thích từng ứng dụng bằng tiếng Việt, có hình minh họa |
 
-Các tiện ích này dùng gói Ubuntu chính thức, **đã cài thì bỏ qua**. Không tự bật Remote Desktop, không thay đổi firewall/VPN, không tự chọn ổ backup hay xóa phần mềm có sẵn. Các gói đồ họa nặng, Docker, môi trường lập trình và nhiều trình duyệt chỉ nằm trong `--profile full`.
+Các tiện ích nền tảng ưu tiên gói Ubuntu chính thức, **đã cài thì bỏ qua**; các gói hãng/Zalo được xử lý riêng có kiểm tra nguồn tải. Không tự bật Remote Desktop, không thay đổi firewall/VPN, không tự chọn ổ backup hay xóa phần mềm có sẵn. Các gói đồ họa nặng, Docker, môi trường lập trình và nhiều trình duyệt chỉ nằm trong `--profile full`.
+
+**Để giống Windows hơn:** nếu muốn có đủ nút **thu nhỏ / phóng to / đóng** trên GNOME, thêm `--windows-like` khi cài profile `desktop`. Đây là tùy chọn chủ động, không thay đổi bố cục cửa sổ mặc định của người đã quen Ubuntu. Kit cũng bổ sung thư mục người dùng, công cụ giải nén, máy tính, xem nhanh tệp và Pinta (Paint tương tự Windows) khi kho APT cung cấp gói phù hợp.
 
 ## Khi cài xong, làm 3 việc
 
 1. **Lưu công việc**, bấm góc trên bên phải màn hình → nút nguồn **⏻** → **Log Out / Đăng xuất** → đăng nhập lại. Đây là bước giúp bộ gõ áp dụng cấu hình mới.
-2. **Kiểm tra Unikey:** bộ cài đưa **Vietnamese (Unikey)** lên đầu danh sách và ưu tiên sau khi đăng nhập lại Ubuntu GNOME. Nếu chưa bật, nhấn **Super (phím Windows) + Space** để chọn. Bấm chỉ báo ngôn ngữ trên thanh trên cùng → **More settings… / Preferences** để tự chọn **Telex hoặc VNI**; bảng mã nên để **Unicode**.
+2. **Kiểm tra Unikey:** bộ cài đưa **Vietnamese (Unikey)** lên đầu danh sách và ưu tiên sau khi đăng nhập lại Ubuntu GNOME. Nếu chưa bật, nhấn **Super (phím Windows) + Space** để chọn. Bấm chỉ báo ngôn ngữ trên thanh trên cùng → **More settings… / Preferences** để tùy chỉnh **kiểu gõ**; bảng mã nên để **Unicode**.
 3. **Mở Zalo, quét QR** và xác nhận trên điện thoại. Nếu cứ quay **“Đang đăng nhập…”** sau vài phút, lưu công việc → **Restart / Khởi động lại máy** → mở Zalo và quét mã mới. Không xóa dữ liệu chat.
 
-Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó có hướng dẫn đăng xuất/khởi động lại, **mô phỏng bấm từng bước cài Unikey và chọn Telex/VNI** bằng biểu tượng GNOME/IBus, danh sách ứng dụng thực tế và công dụng. Bấm vào các bước để mở màn hình minh họa; lựa chọn trong trang chỉ để tập thao tác, không đổi máy. Có thể mở lại bằng cách nhấp tệp `setup-report.html` trong thư mục `universal-linux-office-kit` ở **Home**.
+Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó có hướng dẫn đăng xuất/khởi động lại, **mô phỏng bấm từng bước bật Unikey và mở phần tùy chỉnh kiểu gõ** bằng biểu tượng GNOME/IBus, danh sách ứng dụng thực tế và công dụng. Bấm vào các bước để mở màn hình minh họa; lựa chọn trong trang chỉ để tập thao tác, không đổi máy. Có thể mở lại bằng cách nhấp tệp `setup-report.html` trong thư mục `universal-linux-office-kit` ở **Home**.
 
-**UniKey tự phục hồi:** Trên Ubuntu GNOME, kit ưu tiên Unikey trong **Input Sources** và **mru-sources** (thứ tự nguồn nhập sử dụng gần đây) mà không xóa các bàn phím khác. Không ép kiểu gõ VNI/Telex đã chọn; `namhh-unikey-guard` chỉ thêm lại mục bị mất, không đổi thiết lập cá nhân khi Unikey vẫn còn. Nếu đang mất UniKey, mở Terminal chạy `bash "$HOME/universal-linux-office-kit/setup.sh" --fix-unikey --yes`, rồi **Log Out** và vào lại. Không tự tắt IBus, không chạy hai framework cùng lúc.
+**UniKey tự phục hồi:** Trên Ubuntu GNOME, kit ưu tiên Unikey trong **Input Sources** và **mru-sources** (thứ tự nguồn nhập sử dụng gần đây) mà không xóa các bàn phím khác. Không ép kiểu gõ cá nhân đã chọn; `namhh-unikey-guard` chỉ thêm lại mục bị mất, có thử lại khi dịch vụ cấu hình GNOME chưa sẵn sàng, không đổi thiết lập cá nhân khi Unikey vẫn còn. Nếu đang mất UniKey, mở Terminal chạy `bash "$HOME/universal-linux-office-kit/setup.sh" --fix-unikey --yes`, rồi **Log Out** và vào lại. Không tự tắt IBus, không chạy hai framework cùng lúc.
 
 > **Lưu ý:** Nếu máy đã có 2–3 bộ Office khác nhau, kit không tự gỡ phần mềm/dữ liệu. Nếu mạng cơ quan chặn GitHub hoặc nguồn tải, bộ cài ghi cảnh báo; bạn có thể nhờ IT kiểm tra. Trên GNOME Wayland, Flameshot đôi khi cần cho phép quyền chụp màn hình lần đầu.
 
 **Xem ảnh thử trên Ubuntu 24.04:** vào [GitHub Actions — Ubuntu desktop kit checks](https://github.com/huynhoainam-sys/universal-linux-office-kit/actions/workflows/tests.yml), mở lượt chạy mới nhất → **Artifacts** → tải `namhh-ubuntu-24.04-preview`. Tệp ZIP có 3 ảnh Terminal tiến trình và ảnh báo cáo HTML. Đây là bản chạy **dry-run trên Ubuntu thật**, không phải bằng chứng WPS/Zalo đã đăng nhập trên máy người dùng.
 
-**QA:** bài test tự động chạy trên Ubuntu 22.04/24.04, mô phỏng lỗi proxy APT, thiếu ứng dụng phụ, lỗi một thành phần thiết yếu, Unikey bị mất sau đăng nhập, ưu tiên Unikey nhưng giữ lựa chọn Telex/VNI của người dùng, Flameshot GNOME Wayland và Zalo AppImage đã có. Lỗi phụ được ghi cảnh báo, ba ứng dụng chính vẫn tiếp tục được xử lý; thành phần thiết yếu thiếu sẽ ghi rõ là lỗi. Không thể bảo đảm Zalo đăng nhập thành công nếu kết nối/proxy doanh nghiệp chặn bước xác thực.
+**QA:** bài test tự động chạy trên Ubuntu 22.04/24.04, mô phỏng lỗi proxy APT, một gói bị chặn nhưng gói khác vẫn cài, tải file bằng hai kênh `curl`/`wget`, file sai checksum, thiếu ứng dụng phụ, lỗi thành phần thiết yếu, UniKey bị mất sau đăng nhập, GNOME GSettings khởi động chậm, Flameshot Wayland, Zalo đã cài, Outlook Web và thiết lập Windows-like. Lỗi phụ chỉ ghi cảnh báo; ba ứng dụng thiết yếu tiếp tục độc lập. Không thể bảo đảm Zalo đăng nhập thành công nếu kết nối/proxy doanh nghiệp chặn bước xác thực.
 
 ---
 
@@ -98,10 +101,10 @@ Các profile:
 
 - `minimal`: sửa APT/dpkg, thư viện nền, công cụ mạng.
 - `office`: minimal + WPS Office (ưu tiên), tối đa một bộ Office khác (mặc định LibreOffice), PDF, scan, Flameshot và bộ gõ tiếng Việt.
-- `desktop` (**mặc định**): office + **Zalo** + các tiện ích cần cho người chuyển từ Windows; không tự cài Docker, Chrome, Edge hay bộ công cụ lập trình.
+- `desktop` (**mặc định**): office + **Zalo, Outlook Web** + các tiện ích cần cho người chuyển từ Windows; không tự cài Docker, Chrome, Edge hay bộ công cụ lập trình.
 - `full`: desktop + development, Flatpak, Chrome, Edge, VS Code, Docker, Zoom. Muốn thử Zalo bản `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
-Tùy chọn: `--repair-desktop` (bao gồm kiểm tra WPS/Office), `--fix-office` (chỉ kiểm tra/cài bộ Office), `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
+Tùy chọn: `--repair-desktop` (bao gồm Office, Outlook Web), `--fix-office`, `--fix-outlook`, `--windows-like`, `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
 
 ## App được cài và công dụng
 
@@ -126,14 +129,14 @@ Tùy chọn: `--repair-desktop` (bao gồm kiểm tra WPS/Office), `--fix-office
 | Hunspell/Hyphen/MyThes tiếng Việt | Kiểm tra chính tả, ngắt dòng và từ điển |
 | Evince, Poppler | Đọc, trích xuất và xử lý PDF |
 | Simple Scan, CUPS, System Config Printer | Scan và cài máy in |
-| IBus Unikey / Fcitx5 Unikey | Bộ gõ tiếng Việt: Cinnamon dùng Fcitx5; Ubuntu GNOME dùng IBus. Kit đưa Unikey vào vị trí ưu tiên; đăng xuất/đăng nhập lại, rồi tùy chọn Telex/VNI. |
+| IBus Unikey / Fcitx5 Unikey | Bộ gõ tiếng Việt: Cinnamon dùng Fcitx5; Ubuntu GNOME dùng IBus. Kit đưa Unikey vào vị trí ưu tiên; đăng xuất/đăng nhập lại, rồi tùy chỉnh kiểu gõ. |
 | Canon UFR II/UFRII LT | Driver in Canon tùy chọn; tải đúng gói `.tar.gz` chính thức của model rồi truyền `--canon-ufrii-archive PATH`. Script cài các gói Debian đúng kiến trúc; thêm máy in sau trong cấu hình máy in. |
 | VLC, FFmpeg | Phát và chuyển đổi âm thanh/video |
 | GIMP, ImageMagick | Chỉnh sửa và xử lý ảnh |
-| Flameshot | Chụp vùng màn hình; trên GNOME tự gán `Ctrl+Alt+S` chạy `flameshot gui` sau khi cài. Desktop khác cần đặt phím tắt trong Keyboard Shortcuts. |
+| Flameshot | Chụp vùng màn hình; trên GNOME tự gán `Ctrl+Shift+S` chạy `flameshot gui` sau khi cài. Desktop khác cần đặt phím tắt trong Keyboard Shortcuts. |
 | Noto, Liberation fonts | Font Unicode/CJK và tương thích tài liệu |
 | Carlito, Caladea và font aliases | Thay thế gần kích thước Calibri/Cambria; ánh xạ các font Office phổ biến trong tài khoản người dùng |
-| Thunderbird, PDF Arranger | Email desktop và sắp xếp trang PDF |
+| Thunderbird, PDF Arranger | Email desktop độc lập và sắp xếp trang PDF |
 | SMB/CIFS, OpenVPN | Truy cập file share và kết nối VPN khi có cấu hình |
 
 ### Làm việc chuyên sâu — profile `full`
@@ -153,6 +156,10 @@ Tùy chọn: `--repair-desktop` (bao gồm kiểm tra WPS/Office), `--fix-office
 | Zalo Linux (chat, `full` tùy chọn) | Nhắn tin, gọi thoại/video (nếu hệ thống hỗ trợ) qua AppImage cộng đồng; tạo launcher/icon | Installer đã đóng gói trong Office Kit; AppImage từ `VN-Linux-Family/zalo-for-linux` hoặc mirror kiểm tra SHA-256 |
 
 Zalo installer nằm sẵn tại `vendor/zalo/` (đồng bộ từ repository `huynhoainam-sys/zalo-linux-chat-kit`), không cần clone repo thứ hai. Các thư viện (`curl`, `ca-certificates`, `libfuse2`, `libopus0`, `pulseaudio-utils`, clipboard...) chỉ được cài nếu thiếu. Khi GitHub bị chặn, bộ cài thử release ghim SHA-256 và mirror đã kiểm tra nội dung; nếu tất cả nguồn đều lỗi, giữ bản Zalo cũ và không xóa dữ liệu chat.
+
+**Hai kênh tải file khi proxy chặn:** các file `.deb` trực tiếp được thử qua `curl`, nếu thất bại thử `wget` trên HTTPS. Với WPS phiên bản ghim SHA-256, IT có thể chỉ định nguồn phụ bằng `ULOK_WPS_MIRROR_URL=https://may-chu-tin-cay/ten-goi.deb`; cả hai nguồn đều phải khớp cùng mã băm. Nếu domain bị chặn ở tầng mạng, hai công cụ cùng URL cũng có thể thất bại; bộ cài không tự vô hiệu proxy/VPN hoặc dùng nguồn không xác thực. APT vẫn sử dụng mirror được cấu hình trên máy; khi lệnh cài nhóm thất bại, script thử từng gói để lỗi một ứng dụng không chặn phần khác. Xem [kiểm kê ứng dụng và chính sách tải](docs/APPS-AND-NETWORK.md).
+
+**Outlook cho Ubuntu:** Microsoft không cung cấp Outlook desktop Linux tương đương bản Windows. Office Kit tạo biểu tượng **Microsoft Outlook (Web)** dẫn tới `https://outlook.office.com/mail/` và tự chọn Edge/Chrome (cửa sổ app) nếu có, sau đó Firefox hoặc trình duyệt mặc định. Muốn PWA thực sự, mở Outlook bằng Edge và chọn **Apps → Install this site as an app**, hoặc dùng **Install Outlook** trong Chrome khi có tùy chọn. Kit không lưu mật khẩu/email công ty. Có thể sửa riêng launcher bằng `bash setup.sh --fix-outlook --yes`.
 
 ### Các app chưa tự cài
 
@@ -176,7 +183,7 @@ bash doctor.sh
 ```
 
 - **Tiếng Việt:** trên Ubuntu GNOME chọn IBus Unikey, kể cả khi phiên bản kit cũ đã cài Fcitx5; trên Linux Mint/Cinnamon dùng Fcitx5. Nếu chưa có bộ gõ đúng, script cài thêm qua APT. GNOME thêm và chọn Unikey trong Input Sources; Fcitx5 giữ các mục có sẵn và đổi bộ gõ mặc định thành Unikey (có sao lưu profile trước khi sửa). Có thể đổi qua tiếng Anh bằng **Super+Space** (GNOME), hoặc phím chuyển bộ gõ của Fcitx5. Sau sửa cần **đăng xuất → đăng nhập** để `im-config` có hiệu lực.
-- **Flameshot:** cài gói nếu thiếu; trên GNOME Wayland bổ sung `xdg-desktop-portal`, backend GNOME và Qt Wayland. Tạo launcher cá nhân `~/.local/bin/ulok-flameshot`, tự chạy khi đăng nhập và gán **Ctrl+Alt+S** trong GNOME. Chỉ cập nhật các tệp kit quản lý; không sửa file `.desktop` của hệ thống và không xóa phím tắt cá nhân khác.
+- **Flameshot:** cài gói nếu thiếu; trên GNOME Wayland bổ sung `xdg-desktop-portal`, backend GNOME và Qt Wayland. Tạo launcher cá nhân `~/.local/bin/ulok-flameshot`, tự chạy khi đăng nhập và gán **Ctrl+Shift+S** trong GNOME. Chỉ cập nhật các tệp kit quản lý; không sửa file `.desktop` của hệ thống và không xóa phím tắt cá nhân khác.
 
 Nếu APT không cài được Flameshot (ví dụ máy đang dùng mirror nội bộ không truy cập được), lệnh `--fix-flameshot` nay trả về lỗi và ghi nguyên nhân vào `setup.log`/`setup-report.txt`, không coi việc chỉ tạo shortcut là cài thành công. Kiểm tra thủ công bằng `sudo apt-get install -y flameshot` và gửi dòng lỗi APT để xác định đúng mirror/phụ thuộc.
 
