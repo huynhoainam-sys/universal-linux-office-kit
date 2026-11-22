@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class HtmlReportTests(unittest.TestCase):
-    def test_guide_contains_office_vni_logout_zalo_and_safe_text(self):
+    def test_guide_contains_office_unikey_logout_zalo_and_safe_text(self):
         with tempfile.TemporaryDirectory() as temporary:
             report = Path(temporary) / "setup-report.txt"
             output = Path(temporary) / "setup-report.html"
@@ -32,7 +32,7 @@ class HtmlReportTests(unittest.TestCase):
                 "<!doctype html>", "lang=\"vi\"", "WPS Office", "GenOffice",
                 "Flameshot", "Ctrl", "Log Out", "Restart", "Zalo",
                 "Quick Settings", "Log Out…", "Restart…", "Add Input Source",
-                "Character Set: Unicode", "Scan QR Code", "VNI",
+                "Output charset:", "Scan QR Code", "Telex", "VNI",
                 "tie6ng1 vie6t5", "Windows", "huynhoainam@gmail.com",
             ):
                 self.assertIn(phrase, content)
@@ -48,6 +48,17 @@ class HtmlReportTests(unittest.TestCase):
             self.assertIn('--bg:#061021', content)
             self.assertIn('class="brand-mark"', content)
             self.assertIn('OFFLINE READY', content)
+            self.assertIn('id="unikey"', content)
+            self.assertIn('Hướng dẫn Unikey', content)
+            self.assertIn('id="method-telex"', content)
+            self.assertIn('id="method-vni"', content)
+            self.assertIn('class="click-guide"', content)
+            self.assertEqual(content.count('<details class="click-step"'), 4)
+            self.assertIn('for="sim-add-unikey"', content)
+            self.assertIn('name="sim-active-input"', content)
+            self.assertIn('<symbol id="i-gear"', content)
+            self.assertNotIn('href="#vni"', content)
+            self.assertNotIn('<script', content)
             self.assertNotIn('<script', content)
             self.assertNotIn('src="https://', content)
             self.assertLess(len(content.encode("utf-8")), 90_000)

@@ -45,6 +45,7 @@ grep -q 'cifs-utils smbclient' "$ROOT/setup.sh" || fail 'SMB tools missing'
 if command -v bash >/dev/null; then bash -n "$ROOT/setup.sh"; fi
 bash -n "$ROOT/doctor.sh"
 bash "$ROOT/tests/test_input_method.sh"
+bash "$ROOT/tests/test_ibus_priority.sh"
 bash "$ROOT/tests/test_flameshot.sh"
 bash "$ROOT/tests/test_genoffice.sh"
 bash "$ROOT/tests/test_office_suites.sh"

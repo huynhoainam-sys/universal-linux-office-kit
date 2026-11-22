@@ -301,6 +301,68 @@ HTML_TEMPLATE = r'''<!doctype html>
     .keymap {display:flex;flex-wrap:wrap;gap:7px;margin:13px 0;}
     .keymap span {background:#153450;border:1px solid #315a77;padding:5px 8px;border-radius:7px;
       font-size:12px;color:#cee7ff;}
+    .click-guide {display:grid;gap:10px;margin-top:20px;}
+    .click-step {margin:0;background:#0b203a;border:1px solid #315474;border-radius:12px;overflow:hidden;padding:0;}
+    .click-step[open] {border-color:#4481a0;box-shadow:0 0 20px #29b4df11;}
+    .click-step > summary {display:flex;align-items:center;gap:12px;list-style:none;min-height:54px;
+      color:#e8f6ff;padding:11px 16px;cursor:pointer;}
+    .click-step > summary::-webkit-details-marker {display:none;}
+    .click-step > summary:hover,.click-step > summary:focus-visible {background:#143451;outline:2px solid #6acbe8;outline-offset:-2px;}
+    .click-step .number {display:grid;place-items:center;flex:none;width:31px;height:31px;
+      background:#144260;border:1px solid #3a809c;border-radius:9px;color:#adf0ff;font-weight:800;}
+    .click-step .step-title {flex:1;font-size:14px;font-weight:750;}
+    .click-step .step-arrow {color:#83b9d6;transition:transform .12s ease;}
+    .click-step[open] .step-arrow {transform:rotate(180deg);}
+    .click-body {border-top:1px solid #2b4d6b;padding:16px;background:#0b1930;}
+    .click-body p {font-size:13px;color:#b6d0e7;margin:0 0 12px;}
+    .sim-screen {background:#091327;border:1px solid #345778;border-radius:11px;overflow:hidden;max-width:850px;}
+    .sim-topbar {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;
+      background:#1b2437;color:#eaf0ff;font-size:12px;font-weight:700;}
+    .sim-system {display:flex;align-items:center;gap:8px;}
+    .sim-system .icon {width:15px;height:15px;}
+    .sim-workspace {display:grid;grid-template-columns:170px minmax(0,1fr);min-height:190px;}
+    .sim-sidebar {padding:13px 10px;border-right:1px solid #294360;background:#132139;}
+    .sim-sidebar div {display:flex;align-items:center;gap:9px;padding:10px;border-radius:7px;color:#b2c6dc;
+      font-size:12px;}
+    .sim-sidebar .selected {background:#235277;border:1px solid #54a4c2;color:#fff;font-weight:800;}
+    .sim-main {padding:18px;min-width:0;}
+    .sim-main h4 {font-size:15px;margin:0 0 13px;}
+    .sim-field {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+      background:#152d49;border:1px solid #345573;border-radius:9px;padding:10px 12px;margin:8px 0;font-size:12px;}
+    .sim-action {display:inline-flex;align-items:center;gap:6px;border:1px solid #48b9d7;background:#154866;
+      border-radius:7px;padding:7px 10px;color:#c5f6ff;font-weight:800;white-space:nowrap;}
+    .sim-action .icon {width:15px;height:15px;}
+    .sim-add-toggle,.sim-choice input {position:absolute;opacity:0;width:1px;height:1px;}
+    .sim-add-toggle:focus-visible + label {outline:2px solid #9cedfa;outline-offset:2px;}
+    .sim-action[for] {cursor:pointer;min-height:44px;}
+    .sim-added {display:none;flex-basis:100%;align-items:center;gap:6px;color:#a4f0d0;font-size:12px;}
+    .sim-add-toggle:checked ~ .sim-added {display:flex;}
+    .sim-choice {display:grid;gap:4px;}
+    .sim-choice label {cursor:pointer;display:flex;align-items:center;gap:9px;padding:11px 12px;
+      border:1px solid #34516a;border-radius:8px;color:#b9cde1;font-size:13px;min-height:44px;}
+    .sim-choice input:checked + label {background:#123e57;border-color:#56bcd6;color:#e8fcff;font-weight:800;}
+    .sim-choice input:focus-visible + label {outline:2px solid #9cedfa;outline-offset:2px;}
+    .sim-option {display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #34516a;
+      border-radius:8px;font-size:13px;margin:8px 0;color:#b9cde1;}
+    .sim-option.selected {background:#123e57;border-color:#56bcd6;color:#e8fcff;font-weight:800;}
+    .sim-option .icon {width:18px;height:18px;}
+    .sim-menu {max-width:340px;margin:10px 10px 12px auto;background:#152944;border:1px solid #50718f;
+      border-radius:9px;padding:8px;box-shadow:0 8px 22px #010a18;}
+    .sim-menu .sim-option {margin:3px 0;}
+    .sim-hint {margin:8px 0 0!important;color:#8fb0cc!important;font-size:11px!important;}
+    .sim-preferences {padding:16px;background:#13243c;}
+    .sim-preferences .sim-field {margin-bottom:11px;}
+    .typing-pick {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .typing-pick input {position:absolute;opacity:0;width:1px;height:1px;}
+    .typing-pick label {cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:8px 17px;
+      border:1px solid #4b6986;border-radius:9px;color:#bed3e8;font-weight:800;font-size:13px;}
+    .typing-pick input:checked + label {background:#1b5a70;border-color:#60d5e7;color:white;}
+    .typing-pick input:focus-visible + label {outline:2px solid #9cedfa;outline-offset:2px;}
+    .typing-pick .sim-case {display:none;flex-basis:100%;margin:5px 0 0;padding:10px;
+      color:#d9f2fc;background:#0c1c30;border-radius:7px;font-size:12px;}
+    #method-telex:checked ~ .case-telex,#method-vni:checked ~ .case-vni {display:block;}
+    .mode-note {display:flex;align-items:center;gap:8px;margin:15px 0 0;color:#b3d7e6;font-size:12px;}
+    .mode-note .icon {color:#79e9b5;}
     .app-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
     .app-grid > .app-group:last-child:nth-child(odd) {grid-column:1/-1;}
     .app-group {border:1px solid #2d4a6b;border-radius:12px;overflow:hidden;background:#0b1b32;}
@@ -325,8 +387,10 @@ HTML_TEMPLATE = r'''<!doctype html>
       .app-grid > .app-group:last-child:nth-child(odd){grid-column:auto;}
       .panel {padding:21px;} .status-cell{width:135px;} .nav .nav-brand{display:none;}
       .hero{padding:22px 0 32px;} .brandbar{margin-bottom:21px;}
-      .live-badge{display:none;} .mock{max-width:410px;} .meta{gap:8px;} }
-    @media(prefers-reduced-motion:reduce) {html{scroll-behavior:auto;}}
+      .live-badge{display:none;} .mock{max-width:410px;} .meta{gap:8px;}
+      .sim-workspace{grid-template-columns:1fr;}.sim-sidebar{border-right:0;border-bottom:1px solid #294360;}
+      .sim-sidebar div{display:inline-flex;}.sim-main{padding:13px;} }
+    @media(prefers-reduced-motion:reduce) {html{scroll-behavior:auto;}.click-step .step-arrow{transition:none;}}
     @media print { :root {color-scheme:light;--ink:#14283c;--muted:#46596c;--blue:#24577b;--line:#cad6e0;}
       body{background:white;color:#14283c;}body::before{display:none;}
       .panel,.stat,.step,.app-group,.guide-shot,.mini-card,.tip{background:white!important;color:#14283c;
@@ -355,6 +419,10 @@ HTML_TEMPLATE = r'''<!doctype html>
     <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></symbol>
     <symbol id="i-appwindow" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20M6 6h.01M10 6h.01"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M9 4v6M15 14v6"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l-1.8 1.8a1.7 1.7 0 0 0-1.9-.3l-1 .6-.4 2.2h-2.6l-.4-2.2-1-.6a1.7 1.7 0 0 0-1.9.3l-1.8-1.8a1.7 1.7 0 0 0 .3-1.9l-.6-1-.2-2.2.8-.7a1.7 1.7 0 0 0 .3-1.9l1.8-1.8a1.7 1.7 0 0 0 1.9.3l1-.6.4-2.2h2.6l.4 2.2 1 .6a1.7 1.7 0 0 0 1.9-.3l1.8 1.8a1.7 1.7 0 0 0-.3 1.9l.6 1-.6 2.2Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></symbol>
   </svg>
   <header class="hero"><div class="wrap">
     <div class="brandbar"><div class="brand-ident"><span class="brand-mark" aria-hidden="true">N</span>
@@ -371,7 +439,7 @@ HTML_TEMPLATE = r'''<!doctype html>
     <span class="nav-brand">NAMHH KIT</span>
     <a href="#checklist"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Bắt đầu</a>
     <a href="#logout"><svg class="icon" aria-hidden="true"><use href="#i-power"/></svg>Log Out / Restart</a>
-    <a href="#vni"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Unikey VNI</a>
+    <a href="#unikey"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Hướng dẫn Unikey</a>
     <a href="#zalo"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>Zalo QR</a>
     <a href="#apps"><svg class="icon" aria-hidden="true"><use href="#i-apps"/></svg>Ứng dụng</a>
   </nav></div>
@@ -379,7 +447,7 @@ HTML_TEMPLATE = r'''<!doctype html>
     <div class="summary">
       <div class="stat"><strong>${READY}/${TOTAL}</strong><span>Ứng dụng/tiện ích phát hiện sẵn sàng</span></div>
       <div class="stat"><strong>${OFFICE_COUNT}</strong><span>Bộ Office đang có (WPS ưu tiên)</span></div>
-      <div class="stat"><strong>3 bước</strong><span>Đăng xuất, đặt VNI, mở Zalo</span></div>
+      <div class="stat"><strong>3 bước</strong><span>Đăng xuất, kiểm tra Unikey, mở Zalo</span></div>
     </div>
     ${ALERT}
     <section class="panel" id="checklist">
@@ -391,8 +459,8 @@ HTML_TEMPLATE = r'''<!doctype html>
           <p>Nhấn <span class="key">Ctrl</span> + <span class="key">S</span> trong Word/WPS hoặc ứng dụng khác trước khi thoát phiên.</p></div>
         <div class="step"><span class="number">2</span><strong>Đăng xuất rồi vào lại Ubuntu</strong>
           <p>Để bộ gõ tiếng Việt, biểu tượng Zalo và phím tắt nhận cấu hình mới.</p></div>
-        <div class="step"><span class="number">3</span><strong>Chọn VNI và dùng thử</strong>
-          <p>Trong bộ gõ Unikey, chọn VNI + Unicode, thử gõ tiếng Việt trong WPS và Zalo.</p></div>
+        <div class="step"><span class="number">3</span><strong>Kiểm tra bộ gõ Unikey</strong>
+          <p>Bộ cài ưu tiên Unikey. Bạn có thể chọn kiểu gõ Telex hoặc VNI, sau đó thử trong WPS và Zalo.</p></div>
       </div>
     </section>
     <section class="panel" id="logout">
@@ -423,21 +491,69 @@ HTML_TEMPLATE = r'''<!doctype html>
       </div>
       <div class="tip"><strong>Chọn đúng thao tác:</strong> <b>Log Out…</b> để áp dụng bộ gõ phiên đăng nhập mới; <b>Restart…</b> khi Zalo bị xoay ở màn hình đăng nhập quá lâu. <b>Lock</b> chỉ khóa màn hình, không phải đăng xuất. Hãy lưu tài liệu trước khi làm.</div>
     </section>
-    <section class="panel" id="vni">
-      <span class="section-label">03 / Tiếng Việt · Input method</span>
-      <h2>Gõ tiếng Việt kiểu VNI như trên Windows</h2>
-      <p class="sub">Giữ cách gõ quen thuộc từ UniKey Windows. Hãy sử dụng <b>Unicode</b> cho Word, WPS, trình duyệt và Zalo.</p>
-      <ol class="guide-list">
-        <li><b>Thêm Unikey:</b> mở <b>Settings → Keyboard → Input Sources → Add Input Source → Vietnamese → Vietnamese (Unikey)</b> nếu chưa xuất hiện trong danh sách.</li>
-        <li><b>Chuyển bộ gõ:</b> nhấn <span class="key">Super</span> (phím Windows) + <span class="key">Space</span>, chọn <b>Vietnamese (Unikey)</b>.</li>
-        <li><b>Đặt VNI:</b> bấm mục <b>VI / Unikey</b> trên top bar → <b>Preferences / Setup</b> → <b>Input Method: VNI</b> và <b>Character Set: Unicode</b>. Trên Cinnamon, mở <b>Fcitx 5 Configuration → Unikey → Configure</b>.</li>
-        <li><b>Kiểm tra:</b> mở <b>Text Editor</b> hoặc <b>WPS Writer</b>, gõ <span class="key">tie6ng1 vie6t5</span> → <b>tiếng việt</b>.</li>
-      </ol>
-      <div class="guide-shot"><strong>Phím số trong VNI / VNI number keys</strong>
-        <div class="keymap"><span>1 · Sắc</span><span>2 · Huyền</span><span>3 · Hỏi</span><span>4 · Ngã</span><span>5 · Nặng</span><span>6 · Â/Ê/Ô</span><span>7 · Ơ/Ư</span><span>8 · Ă</span><span>9 · Đ</span></div>
-        <div class="caption">Ví dụ: “a61” → “ấ”, “a81” → “ắ”.</div>
+    <section class="panel" id="unikey">
+      <span class="section-label">03 / Hướng dẫn Unikey · Input Method</span>
+      <h2>Unikey — bộ gõ tiếng Việt ưu tiên</h2>
+      <p class="sub">Bộ cài đưa <b>Vietnamese (Unikey)</b> lên đầu danh sách và ưu tiên khi đăng nhập Ubuntu GNOME.
+        Bạn có thể dùng <b>Telex hoặc VNI</b> theo thói quen; với tài liệu hiện đại, nên dùng bảng mã <b>Unicode</b>.</p>
+      <div class="notice"><strong>Hướng dẫn có thể bấm để xem từng bước.</strong> Đây là mô phỏng các màn hình GNOME/IBus,
+        không tự thay đổi cài đặt máy. Tên và vị trí biểu tượng có thể khác nhẹ giữa các phiên bản Ubuntu.</div>
+      <div class="click-guide">
+        <details class="click-step" open><summary><span class="number">1</span><span class="step-title">Mở Settings <span aria-hidden="true">→</span> Keyboard</span>
+          <svg class="icon step-arrow" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+          <div class="click-body"><p>Nhấn <span class="key">Super</span>, tìm <b>Settings</b> (biểu tượng bánh răng), rồi chọn <b>Keyboard</b>.</p>
+            <div class="sim-screen" role="img" aria-label="Minh họa cửa sổ GNOME Settings: chọn Keyboard, nhìn thấy Input Sources và nút dấu cộng">
+              <div class="sim-topbar"><span>Settings</span><span class="sim-system"><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg> Ubuntu</span></div>
+              <div class="sim-workspace"><div class="sim-sidebar">
+                <div><svg class="icon" aria-hidden="true"><use href="#i-wifi"/></svg>Wi-Fi</div>
+                <div class="selected"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Keyboard</div></div>
+                <div class="sim-main"><h4>Keyboard</h4>
+                  <div class="sim-field"><span><b>Input Sources</b></span><span class="sim-action"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add Input Source…</span></div>
+                  <div class="sim-field"><span>Vietnamese (Unikey)</span><span class="pill ready"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-check"/></svg>Ưu tiên</span></div>
+                </div></div></div></div>
+        </details>
+        <details class="click-step"><summary><span class="number">2</span><span class="step-title">Nếu thiếu Unikey: nhấn <b>+</b> để thêm bộ gõ</span>
+          <svg class="icon step-arrow" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+          <div class="click-body"><p>Trong <b>Input Sources</b>, nhấn <b>+ Add Input Source…</b> → <b>Vietnamese</b> → <b>Vietnamese (Unikey)</b> → <b>Add</b>. Nếu đã có Unikey thì bỏ qua.</p>
+            <div class="sim-screen"><div class="sim-topbar"><span>Add an Input Source</span><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></div>
+              <div class="sim-preferences"><div class="sim-option"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Vietnamese</div>
+                <div class="sim-option selected"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Vietnamese (Unikey)</div>
+                <div class="sim-field"><span>Chọn nguồn nhập tiếng Việt</span><input class="sim-add-toggle" type="checkbox" id="sim-add-unikey">
+                  <label class="sim-action" for="sim-add-unikey"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add</label>
+                  <span class="sim-added"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-check"/></svg>Đã thêm Unikey trong mô phỏng</span></div>
+              </div></div></div>
+        </details>
+        <details class="click-step"><summary><span class="number">3</span><span class="step-title">Bật Unikey từ thanh trên cùng hoặc Super + Space</span>
+          <svg class="icon step-arrow" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+          <div class="click-body"><p>Đăng xuất và đăng nhập lại để áp dụng ưu tiên. Nếu chưa gõ tiếng Việt, nhấn <span class="key">Super</span> + <span class="key">Space</span> hoặc bấm chỉ báo nguồn nhập (<b>en / vi</b>) trên <b>top bar</b> rồi chọn <b>Vietnamese (Unikey)</b>.</p>
+            <div class="sim-screen"><div class="sim-topbar"><span>Activities</span><span class="sim-system"><span class="sim-action">vi <svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></span>
+                <svg class="icon" aria-hidden="true"><use href="#i-wifi"/></svg><svg class="icon" aria-hidden="true"><use href="#i-volume"/></svg></span></div>
+              <div class="sim-menu"><div class="sim-choice" role="group" aria-label="Chọn thử nguồn nhập trong mô phỏng">
+                <input type="radio" id="sim-ime-en" name="sim-active-input"><label for="sim-ime-en"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>English (US)</label>
+                <input type="radio" id="sim-ime-vi" name="sim-active-input" checked><label for="sim-ime-vi"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Vietnamese (Unikey)</label>
+                </div>
+                <div class="sim-option"><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg>Input Source Settings</div></div>
+              </div><p class="sim-hint">Bấm thử English / Unikey để thấy lựa chọn. Đây chỉ là minh họa; trên Ubuntu thật dùng Super + Space.</p>
+          </div>
+        </details>
+        <details class="click-step"><summary><span class="number">4</span><span class="step-title">Tùy chỉnh Telex / VNI và Unicode</span>
+          <svg class="icon step-arrow" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+          <div class="click-body"><p>Khi Unikey đang bật, bấm chỉ báo nguồn nhập → <b>More settings…</b> (hoặc <b>Preferences</b> nếu menu hiện mục này). Trong <b>Settings - ibus-unikey</b>, chọn <b>Input method</b> theo thói quen và <b>Output charset: Unicode</b>.</p>
+            <div class="sim-screen"><div class="sim-topbar"><span>Settings - ibus-unikey</span><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg></div>
+              <div class="sim-preferences"><b>Input method:</b>
+                <div class="typing-pick" role="group" aria-label="Thử chọn kiểu gõ trên trang mô phỏng">
+                  <input type="radio" id="method-telex" name="unikey-typing-method" checked><label for="method-telex">Telex</label>
+                  <input type="radio" id="method-vni" name="unikey-typing-method"><label for="method-vni">VNI</label>
+                  <div class="sim-case case-telex">Ví dụ Telex: <b>tieengs vieetj</b> → <b>tiếng việt</b></div>
+                  <div class="sim-case case-vni">Ví dụ VNI: <b>tie6ng1 vie6t5</b> → <b>tiếng việt</b></div>
+                </div>
+                <div class="sim-field"><b>Output charset:</b><span class="pill ready"><svg class="icon icon-xs" aria-hidden="true"><use href="#i-check"/></svg>Unicode</span></div>
+                <p class="sim-hint">Bấm Telex/VNI ở trên để xem ví dụ. Lựa chọn trong trang minh họa không thay đổi máy của bạn.</p>
+              </div></div></div>
+        </details>
       </div>
-      <div class="tip">Nếu chưa thấy Unikey sau khi cài, hãy <a href="#logout">đăng xuất rồi đăng nhập lại</a>. Đừng cài hai bộ gõ chạy đồng thời; bộ cài đã chọn IBus cho Ubuntu GNOME và Fcitx5 cho Cinnamon.</div>
+      <p class="mode-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Trên Linux Mint Cinnamon: <b>Fcitx 5 Configuration → Input Method → Unikey → Configure</b>. Nếu chưa thấy Unikey sau khi cài, hãy <a href="#logout">Log Out rồi đăng nhập lại</a>.</p>
+      <div class="tip"><strong>Kiểm tra thực tế:</strong> mở <b>Text Editor</b> hoặc <b>WPS Writer</b>, gõ thử theo kiểu đã chọn. Nếu mất bộ gõ sau khi đăng nhập, chạy lại tùy chọn <b>--fix-unikey</b>; tiện ích phục hồi chỉ thêm lại nguồn nhập bị mất và giữ các lựa chọn cá nhân.</div>
     </section>
     <section class="panel" id="zalo">
       <span class="section-label">04 / Đăng nhập Zalo · QR Code</span>

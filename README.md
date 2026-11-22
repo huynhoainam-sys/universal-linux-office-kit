@@ -30,18 +30,18 @@ Các tiện ích này dùng gói Ubuntu chính thức, **đã cài thì bỏ qua
 ## Khi cài xong, làm 3 việc
 
 1. **Lưu công việc**, bấm góc trên bên phải màn hình → nút nguồn **⏻** → **Log Out / Đăng xuất** → đăng nhập lại. Đây là bước giúp bộ gõ áp dụng cấu hình mới.
-2. **Chọn VNI:** Settings → Keyboard → Input Sources → Vietnamese (Unikey). Nhấn **Super (phím Windows) + Space** để chọn Unikey; mở tùy chọn Unikey trên thanh trên cùng và đặt **VNI + Unicode**. Thử `tie6ng1 vie6t5` → **tiếng việt**.
+2. **Kiểm tra Unikey:** bộ cài đưa **Vietnamese (Unikey)** lên đầu danh sách và ưu tiên sau khi đăng nhập lại Ubuntu GNOME. Nếu chưa bật, nhấn **Super (phím Windows) + Space** để chọn. Bấm chỉ báo ngôn ngữ trên thanh trên cùng → **More settings… / Preferences** để tự chọn **Telex hoặc VNI**; bảng mã nên để **Unicode**.
 3. **Mở Zalo, quét QR** và xác nhận trên điện thoại. Nếu cứ quay **“Đang đăng nhập…”** sau vài phút, lưu công việc → **Restart / Khởi động lại máy** → mở Zalo và quét mã mới. Không xóa dữ liệu chat.
 
-Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó có hướng dẫn minh họa từng bước đăng xuất/khởi động lại, cách gõ VNI, danh sách ứng dụng thực tế và công dụng. Có thể mở lại bằng cách nhấp tệp `setup-report.html` trong thư mục `universal-linux-office-kit` ở **Home**.
+Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó có hướng dẫn đăng xuất/khởi động lại, **mô phỏng bấm từng bước cài Unikey và chọn Telex/VNI** bằng biểu tượng GNOME/IBus, danh sách ứng dụng thực tế và công dụng. Bấm vào các bước để mở màn hình minh họa; lựa chọn trong trang chỉ để tập thao tác, không đổi máy. Có thể mở lại bằng cách nhấp tệp `setup-report.html` trong thư mục `universal-linux-office-kit` ở **Home**.
 
-**UniKey tự phục hồi:** Trên Ubuntu GNOME, kit đặt kiểu gõ **VNI**, bảng mã **Unicode** bằng cấu hình chính thức của `ibus-unikey`. Mục Unikey đôi khi bị GNOME mất sau đăng nhập; tiện ích nhỏ `namhh-unikey-guard` kiểm tra một lần mỗi phiên, chỉ thêm lại mục bị thiếu, giữ nguyên các bộ gõ và phím tắt khác. Nếu đang mất UniKey, mở Terminal chạy `bash "$HOME/universal-linux-office-kit/setup.sh" --fix-unikey --yes`, rồi **Log Out** và vào lại. Không tự tắt IBus, không chạy hai framework cùng lúc.
+**UniKey tự phục hồi:** Trên Ubuntu GNOME, kit ưu tiên Unikey trong **Input Sources** và **mru-sources** (thứ tự nguồn nhập sử dụng gần đây) mà không xóa các bàn phím khác. Không ép kiểu gõ VNI/Telex đã chọn; `namhh-unikey-guard` chỉ thêm lại mục bị mất, không đổi thiết lập cá nhân khi Unikey vẫn còn. Nếu đang mất UniKey, mở Terminal chạy `bash "$HOME/universal-linux-office-kit/setup.sh" --fix-unikey --yes`, rồi **Log Out** và vào lại. Không tự tắt IBus, không chạy hai framework cùng lúc.
 
 > **Lưu ý:** Nếu máy đã có 2–3 bộ Office khác nhau, kit không tự gỡ phần mềm/dữ liệu. Nếu mạng cơ quan chặn GitHub hoặc nguồn tải, bộ cài ghi cảnh báo; bạn có thể nhờ IT kiểm tra. Trên GNOME Wayland, Flameshot đôi khi cần cho phép quyền chụp màn hình lần đầu.
 
 **Xem ảnh thử trên Ubuntu 24.04:** vào [GitHub Actions — Ubuntu desktop kit checks](https://github.com/huynhoainam-sys/universal-linux-office-kit/actions/workflows/tests.yml), mở lượt chạy mới nhất → **Artifacts** → tải `namhh-ubuntu-24.04-preview`. Tệp ZIP có 3 ảnh Terminal tiến trình và ảnh báo cáo HTML. Đây là bản chạy **dry-run trên Ubuntu thật**, không phải bằng chứng WPS/Zalo đã đăng nhập trên máy người dùng.
 
-**QA:** bài test tự động chạy trên Ubuntu 22.04/24.04, mô phỏng lỗi proxy APT, thiếu ứng dụng phụ, lỗi một thành phần thiết yếu, Unikey bị mất sau đăng nhập, cấu hình VNI/Unicode, Flameshot GNOME Wayland và Zalo AppImage đã có. Lỗi phụ được ghi cảnh báo, ba ứng dụng chính vẫn tiếp tục được xử lý; thành phần thiết yếu thiếu sẽ ghi rõ là lỗi. Không thể bảo đảm Zalo đăng nhập thành công nếu kết nối/proxy doanh nghiệp chặn bước xác thực.
+**QA:** bài test tự động chạy trên Ubuntu 22.04/24.04, mô phỏng lỗi proxy APT, thiếu ứng dụng phụ, lỗi một thành phần thiết yếu, Unikey bị mất sau đăng nhập, ưu tiên Unikey nhưng giữ lựa chọn Telex/VNI của người dùng, Flameshot GNOME Wayland và Zalo AppImage đã có. Lỗi phụ được ghi cảnh báo, ba ứng dụng chính vẫn tiếp tục được xử lý; thành phần thiết yếu thiếu sẽ ghi rõ là lỗi. Không thể bảo đảm Zalo đăng nhập thành công nếu kết nối/proxy doanh nghiệp chặn bước xác thực.
 
 ---
 
@@ -126,7 +126,7 @@ Tùy chọn: `--repair-desktop` (bao gồm kiểm tra WPS/Office), `--fix-office
 | Hunspell/Hyphen/MyThes tiếng Việt | Kiểm tra chính tả, ngắt dòng và từ điển |
 | Evince, Poppler | Đọc, trích xuất và xử lý PDF |
 | Simple Scan, CUPS, System Config Printer | Scan và cài máy in |
-| IBus Unikey / Fcitx5 Unikey | Bộ gõ tiếng Việt: Cinnamon dùng Fcitx5; desktop khác dùng IBus. Sau cài cần thêm Unikey trong Input Sources/Input Method và đăng nhập lại. |
+| IBus Unikey / Fcitx5 Unikey | Bộ gõ tiếng Việt: Cinnamon dùng Fcitx5; Ubuntu GNOME dùng IBus. Kit đưa Unikey vào vị trí ưu tiên; đăng xuất/đăng nhập lại, rồi tùy chọn Telex/VNI. |
 | Canon UFR II/UFRII LT | Driver in Canon tùy chọn; tải đúng gói `.tar.gz` chính thức của model rồi truyền `--canon-ufrii-archive PATH`. Script cài các gói Debian đúng kiến trúc; thêm máy in sau trong cấu hình máy in. |
 | VLC, FFmpeg | Phát và chuyển đổi âm thanh/video |
 | GIMP, ImageMagick | Chỉnh sửa và xử lý ảnh |

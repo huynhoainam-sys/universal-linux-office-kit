@@ -201,7 +201,7 @@ backup_desktop_settings() {
   done
   if desktop_is_gnome && command -v gsettings >/dev/null; then
     gsettings get org.gnome.desktop.input-sources sources > "$BACKUP_DIR/gnome-input-sources.txt" 2>/dev/null || true
-    gsettings get org.gnome.desktop.input-sources current > "$BACKUP_DIR/gnome-input-current.txt" 2>/dev/null || true
+    gsettings get org.gnome.desktop.input-sources mru-sources > "$BACKUP_DIR/gnome-input-mru-sources.txt" 2>/dev/null || true
     gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings > "$BACKUP_DIR/gnome-shortcuts.txt" 2>/dev/null || true
   fi
   log "Desktop settings backup: $BACKUP_DIR"
@@ -225,8 +225,8 @@ restore_desktop_settings() {
     if [[ -s "$BACKUP_DIR/gnome-input-sources.txt" ]]; then
       gsettings set org.gnome.desktop.input-sources sources "$(<"$BACKUP_DIR/gnome-input-sources.txt")" || warn 'Không thể khôi phục input sources'
     fi
-    if [[ -s "$BACKUP_DIR/gnome-input-current.txt" ]]; then
-      gsettings set org.gnome.desktop.input-sources current "$(<"$BACKUP_DIR/gnome-input-current.txt")" || warn 'Không thể khôi phục input current'
+    if [[ -s "$BACKUP_DIR/gnome-input-mru-sources.txt" ]]; then
+      gsettings set org.gnome.desktop.input-sources mru-sources "$(<"$BACKUP_DIR/gnome-input-mru-sources.txt")" || warn 'Không thể khôi phục ưu tiên bộ gõ'
     fi
     if [[ -s "$BACKUP_DIR/gnome-shortcuts.txt" ]]; then
       gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "$(<"$BACKUP_DIR/gnome-shortcuts.txt")" || warn 'Không thể khôi phục shortcut list'
@@ -627,7 +627,7 @@ configure_ibus_unikey() {
   if pgrep -u "$(id -u)" -x fcitx5 >/dev/null 2>&1; then
     warn 'Fcitx5 vẫn chạy trong phiên GNOME; đăng xuất rồi đăng nhập lại để dùng IBus, không tự kill bộ gõ đang hoạt động'
   fi
-  local component='/usr/share/ibus/component/unikey.xml' engine='' current updated
+  local component="${IBUS_UNIKEY_COMPONENT:-/usr/share/ibus/component/unikey.xml}" engine='' current updated recent preferred prioritized=0
   if [[ -r "$component" ]] && command -v python3 >/dev/null; then
     engine="$(python3 - "$component" <<'PY'
 import sys, xml.etree.ElementTree as ET
@@ -644,13 +644,8 @@ PY
     return 1
   fi
   log "IBus Unikey engine available: $engine"
-  # These keys belong to the distro's ibus-unikey schema (not VNI-Win charset).
-  # VNI is a typing METHOD; Unicode is the text ENCODING for modern applications.
-  if command -v gsettings >/dev/null && \
-      gsettings list-schemas 2>/dev/null | grep -qx 'org.freedesktop.ibus.engine.unikey'; then
-    gsettings set org.freedesktop.ibus.engine.unikey input-method vni || warn 'Chưa đặt được kiểu gõ VNI trong phiên này'
-    gsettings set org.freedesktop.ibus.engine.unikey output-charset unicode || warn 'Chưa đặt được bảng mã Unicode trong phiên này'
-  fi
+  # Never force Telex/VNI on a working system: users choose their own typing
+  # method through the real IBus-Unikey preferences UI.
   if desktop_is_gnome && command -v gsettings >/dev/null; then
     current="$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null)" || current=''
     if [[ -n "$current" ]]; then
@@ -666,24 +661,43 @@ try:
 except (ValueError, SyntaxError, AssertionError):
     sys.exit(0)
 item = ('ibus', sys.argv[2])
-if item not in sources:
-    sources.append(item)
-print(repr(sources))
+# Put Unikey first so GNOME prefers it when the session is recreated.
+# All other keyboard layouts and engines retain their relative order.
+print(repr([item] + [source for source in sources if source != item]))
 PY
 )"
       if [[ -n "$updated" ]]; then
-        gsettings set org.gnome.desktop.input-sources sources "$updated" || warn 'Không thêm được Unikey vào GNOME Input Sources'
-        # Switch to Unikey now, rather than only adding a source the user may
-        # never select. Derive the index from the updated array, not a constant.
-        local unikey_index
-        unikey_index="$(python3 - "$updated" "$engine" <<'PY'
+        if [[ "$current" != "$updated" ]]; then
+          if gsettings set org.gnome.desktop.input-sources sources "$updated"; then
+            prioritized=1
+          else
+            warn 'Không ưu tiên được Unikey trong Input Sources'
+          fi
+        else
+          prioritized=1
+        fi
+        # GNOME's `current` key is deprecated/ignored on modern GNOME Shell;
+        # mru-sources is its persisted most-recently-used source preference.
+        if [[ "$(gsettings writable org.gnome.desktop.input-sources mru-sources 2>/dev/null)" == true ]]; then
+          recent="$(gsettings get org.gnome.desktop.input-sources mru-sources 2>/dev/null)" || recent=''
+          preferred="$(python3 - "$recent" "$engine" <<'PY'
 import ast, sys
-sources = ast.literal_eval(sys.argv[1])
-print(sources.index(('ibus', sys.argv[2])))
+raw = sys.argv[1].strip()
+if raw.startswith('@a(ss) '):
+    raw = raw[len('@a(ss) '):]
+try:
+    sources = ast.literal_eval(raw)
+    assert isinstance(sources, list)
+    assert all(isinstance(x, tuple) and len(x) == 2 and all(isinstance(v, str) for v in x) for x in sources)
+except (ValueError, SyntaxError, AssertionError):
+    sys.exit(0)
+item = ('ibus', sys.argv[2])
+print(repr([item] + [source for source in sources if source != item]))
 PY
 )"
-        if [[ "$(gsettings writable org.gnome.desktop.input-sources current 2>/dev/null)" == true ]]; then
-          gsettings set org.gnome.desktop.input-sources current "$unikey_index" || warn 'Không kích hoạt được Unikey; chọn qua Super+Space'
+          if [[ -n "$preferred" && "$recent" != "$preferred" ]]; then
+            gsettings set org.gnome.desktop.input-sources mru-sources "$preferred" || warn 'Chưa đặt được Unikey làm bộ gõ ưu tiên; dùng Super+Space'
+          fi
         fi
       else
         warn 'Không đọc được Input Sources; thêm Unikey trong Settings > Keyboard'
@@ -691,7 +705,11 @@ PY
     fi
   fi
   install_unikey_session_guard
-  log 'Chọn Unikey trong Input Sources; có thể cần đăng xuất/đăng nhập một lần'
+  if (( prioritized )); then
+    log 'Unikey được đưa lên đầu danh sách Input Sources; đăng xuất/đăng nhập để áp dụng, chọn kiểu gõ trong Preferences'
+  else
+    log 'Unikey engine có sẵn; mở Settings > Keyboard > Input Sources nếu chưa chọn được làm bộ gõ chính'
+  fi
 }
 
 install_unikey_session_guard() {

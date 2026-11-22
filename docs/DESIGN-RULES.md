@@ -45,13 +45,14 @@
   `Quick Settings`, `Power`, `Log Out…`, `Restart…`, `Settings`, `Keyboard`, `Input Sources`, `Vietnamese (Unikey)`.
 - Mỗi bước bắt đầu bằng động từ, tối đa một thao tác chính. Chỉ dùng cụm từ kỹ thuật khi cần thiết.
 - Hướng dẫn log out: góc phải top bar → Quick Settings → Power → Log Out…; lưu tài liệu trước.
-- Hướng dẫn VNI: thêm Vietnamese (Unikey), chọn bằng Super+Space, đặt Input Method VNI + Unicode, gõ mẫu.
+- Hướng dẫn **Unikey** (không tách riêng VNI): chọn Settings → Keyboard → Input Sources → Add Input Source; bấm chỉ báo nguồn nhập hoặc Super+Space; mở More settings… / Preferences để tự chọn Telex hoặc VNI và Output charset Unicode.
+- Mô phỏng bấm từng bước dùng `<details>` và radio HTML thuần, icon SVG cùng hình dáng/ý nghĩa với GNOME/IBus. Chú thích rõ chỉ là minh họa, không điều khiển máy thật; các bước có thể dùng bằng bàn phím và không cần JavaScript.
 - Zalo quét QR xong quay lâu: đóng hẳn Zalo, lưu công việc, Restart…, mở lại và quét mã mới; giữ nguyên dữ liệu đăng nhập.
 - Không viết “đã cài thành công” trong báo cáo `dry-run`; thay bằng “bản chạy thử, không cài ứng dụng”.
 - Khi 2–3 bộ Office đã tồn tại, chỉ cảnh báo; không tự gỡ ứng dụng hay dữ liệu.
 - Ở `--profile desktop`, cài ba thành phần thiết yếu **Unikey → Flameshot → Zalo** trước Office và tiện ích phụ. Thiếu gói phụ không được chặn các thành phần thiết yếu.
-- Bộ gõ GNOME: IBus Unikey, **input-method=vni** và **output-charset=unicode** qua GSettings chính thức; session guard chỉ bổ sung mục Unikey bị mất và không xóa nguồn nhập khác.
-- Session guard chỉ đặt VNI/Unicode một lần lúc đăng nhập đầu tiên; các thay đổi về sau của người dùng được giữ nguyên. Không kill/restart daemon IBus giữa phiên Wayland.
+- Bộ gõ GNOME: IBus Unikey được ưu tiên ở đầu `sources` và `mru-sources`. GSettings `current` đã lỗi thời và không còn tác dụng trên GNOME mới; không dùng để khẳng định UniKey đã được kích hoạt. Không ép VNI/Telex hoặc ghi đè lựa chọn cá nhân.
+- Session guard chỉ khôi phục nguồn Unikey khi mất và ưu tiên lúc khôi phục; khi nguồn vẫn còn thì tuyệt đối không đổi thứ tự, lựa chọn hay phương pháp gõ. Không kill/restart daemon IBus giữa phiên Wayland.
 
 ## 5. Tốc độ và offline
 
@@ -64,7 +65,7 @@
 
 1. `bash tests/test_static.sh` và Python HTML tests đều PASS.
 2. GitHub Actions Ubuntu **22.04 và 24.04** chạy `--profile desktop --dry-run`; không cài package thật hoặc dùng tài khoản Zalo.
-3. Mock các tình huống: FPT/proxy chặn APT, tải WPS lỗi, gói phụ lỗi, mất Unikey trong GNOME, VNI/Unicode, giữ cấu hình cá nhân, Flameshot Wayland, Zalo đã cài, tối đa hai bộ Office.
+3. Mock các tình huống: FPT/proxy chặn APT, tải WPS lỗi, gói phụ lỗi, mất Unikey trong GNOME, ưu tiên Unikey nhưng giữ lựa chọn Telex/VNI, Flameshot Wayland, Zalo đã cài, tối đa hai bộ Office.
 4. Chụp ảnh Terminal XTerm **nền đen thật**, rõ ba trạng thái: đầu, tiến trình, hoàn tất.
 5. Render HTML bằng Chromium, thử Firefox headless nếu có, kiểm tra icon Power/Logout/Restart, tiếng Việt và trạng thái thực tế.
 6. Chỉ công bố ảnh chạy thật kèm nhãn `dry-run`; không dùng ảnh mô phỏng làm bằng chứng cài đặt thành công.

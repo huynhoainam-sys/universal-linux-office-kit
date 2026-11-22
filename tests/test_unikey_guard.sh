@@ -8,6 +8,7 @@ export XDG_CONFIG_HOME="$TEMP/config" XDG_CURRENT_DESKTOP='ubuntu:GNOME'
 export IBUS_UNIKEY_COMPONENT="$TEMP/unikey.xml" NAMHH_TEST_STATE="$TEMP"
 export PATH="$TEMP/bin:$PATH"
 printf '%s\n' '[('\''xkb'\'', '\''us'\'')]' > "$TEMP/sources"
+printf '%s\n' '[('\''xkb'\'', '\''us'\'')]' > "$TEMP/mru-sources"
 printf '%s\n' '<?xml version="1.0"?><component><engines><engine><name>Unikey</name></engine></engines></component>' > "$TEMP/unikey.xml"
 cat > "$TEMP/bin/dpkg-query" <<'EOF'
 #!/usr/bin/env bash
@@ -19,28 +20,28 @@ case "$1" in
   writable) printf '%s\n' true ;;
   list-schemas) printf '%s\n' org.freedesktop.ibus.engine.unikey ;;
   get)
-    if [[ "$3" == sources ]]; then
+    if [[ "$3" == sources || "$3" == mru-sources ]]; then
       if [[ -f "$NAMHH_TEST_STATE/invalid" ]]; then printf '%s\n' 'broken GVariant'
-      else command cat "$NAMHH_TEST_STATE/sources"; fi
+      else command cat "$NAMHH_TEST_STATE/$3"; fi
     fi ;;
   set)
     printf '%s %s %s\n' "$2" "$3" "$4" >> "$NAMHH_TEST_STATE/settings"
-    if [[ "$3" == sources ]]; then printf '%s\n' "$4" > "$NAMHH_TEST_STATE/sources"; fi ;;
+    if [[ "$3" == sources || "$3" == mru-sources ]]; then printf '%s\n' "$4" > "$NAMHH_TEST_STATE/$3"; fi ;;
 esac
 EOF
 chmod +x "$TEMP/bin/dpkg-query" "$TEMP/bin/gsettings"
 
 bash "$ROOT/scripts/unikey-session-guard.sh"
-grep -q "('ibus', 'Unikey')" "$TEMP/sources"
-grep -q 'input-method vni' "$TEMP/settings"
-grep -q 'output-charset unicode' "$TEMP/settings"
-grep -q 'current 1' "$TEMP/settings"
-[[ -s "$XDG_CONFIG_HOME/namhh/unikey-vni-initialized" ]]
+[[ "$(<"$TEMP/sources")" == "[('ibus', 'Unikey'), ('xkb', 'us')]" ]]
+[[ "$(<"$TEMP/mru-sources")" == "[('ibus', 'Unikey'), ('xkb', 'us')]" ]]
+! grep -Eq ' input-method | output-charset | current ' "$TEMP/settings"
 
-# Subsequent logins retain users' changes and never duplicate Unikey.
+# Subsequent logins retain users' selection and never duplicate Unikey.
 before="$(wc -l < "$TEMP/settings")"
+printf '%s\n' "[('xkb', 'us'), ('ibus', 'Unikey')]" > "$TEMP/mru-sources"
 bash "$ROOT/scripts/unikey-session-guard.sh"
 [[ "$(wc -l < "$TEMP/settings")" == "$before" ]]
+[[ "$(<"$TEMP/mru-sources")" == "[('xkb', 'us'), ('ibus', 'Unikey')]" ]]
 
 # A broken/empty GNOME Input Sources value must not be overwritten.
 printf '%s\n' "[('xkb', 'us')]" > "$TEMP/sources"
@@ -54,4 +55,4 @@ rm -f "$TEMP/invalid"
 export XDG_CURRENT_DESKTOP='X-Cinnamon'
 bash "$ROOT/scripts/unikey-session-guard.sh"
 [[ "$(wc -l < "$TEMP/settings")" == "$before" ]]
-echo 'PASS: Unikey session guard recovers lost source, selects VNI/Unicode once and preserves user settings'
+echo 'PASS: Unikey guard restores priority only when missing, preserves typing method and user choices'
