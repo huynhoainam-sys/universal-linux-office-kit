@@ -13,6 +13,8 @@ UI_TOTAL=2
 output="$(ui_banner; ui_stage 'Kiểm tra Ubuntu'; log 'PASS: Kiểm tra hoàn tất'; ui_stage 'Zalo'; ui_finish)"
 [[ "$output" == *NAMHH* && "$output" == *huynhoainam@gmail.com* ]]
 [[ "$output" == *'100%'* && "$output" == *'Zalo'* ]]
+[[ "$output" == *'[01/02]'* && "$output" == *'[02/02]'* ]]
+[[ "$output" != *'█'* ]] || { echo 'FAIL: visual progress bar is too busy' >&2; exit 1; }
 [[ "$output" == *$'\033['* ]] || { echo 'FAIL: ANSI colors missing with FORCE_COLOR' >&2; exit 1; }
 [[ -s "$LOG_PATH" ]]
 if LC_ALL=C grep -q $'\033' "$LOG_PATH"; then

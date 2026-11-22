@@ -16,11 +16,12 @@ ZALO_UI_VISIBLE=0
 ZALO_UI_STAGE=0
 ZALO_UI_TOTAL=6
 ZALO_RESET=$'\033[0m'
-ZALO_BLUE=$'\033[1;34m'
-ZALO_CYAN=$'\033[1;36m'
-ZALO_GREEN=$'\033[1;32m'
-ZALO_YELLOW=$'\033[1;33m'
-ZALO_RED=$'\033[1;31m'
+ZALO_BLUE=$'\033[38;5;109m'
+ZALO_CYAN=$'\033[38;5;110m'
+ZALO_GREEN=$'\033[38;5;108m'
+ZALO_YELLOW=$'\033[38;5;179m'
+ZALO_RED=$'\033[38;5;167m'
+ZALO_MUTED=$'\033[38;5;245m'
 
 zalo_ui_init() {
   if [[ -t 1 || "${FORCE_COLOR:-0}" == 1 ]]; then ZALO_UI_VISIBLE=1; fi
@@ -33,24 +34,22 @@ zalo_ui_print() {
 }
 zalo_ui_banner() {
   (( ZALO_UI_VISIBLE )) || return 0
-  zalo_ui_print "$ZALO_CYAN" '╭────────────────────────────────────────────────────╮'
-  zalo_ui_print "$ZALO_CYAN" '│  NAMHH / ZALO LINUX CHAT KIT                       │'
-  zalo_ui_print "$ZALO_CYAN" '╰────────────────────────────────────────────────────╯'
-  zalo_ui_print "$ZALO_BLUE" '  CREATED BY NAMHH  ·  DESIGN: huynhoainam@gmail.com'
+  zalo_ui_print "$ZALO_CYAN" '  NAMHH  /  ZALO LINUX CHAT KIT'
+  zalo_ui_print "$ZALO_MUTED" '  Ubuntu · Linux Mint  |  AppImage đã xác minh'
+  zalo_ui_print "$ZALO_MUTED" '  Design: huynhoainam@gmail.com'
+  zalo_ui_print "$ZALO_MUTED" '  ─────────────────────────────────────────────────'
   printf '\n'
 }
 zalo_ui_stage() {
   (( ZALO_UI_STAGE += 1 ))
   (( ZALO_UI_VISIBLE )) || return 0
-  local percent=$(((ZALO_UI_STAGE-1)*100/ZALO_UI_TOTAL)) bar='' i
-  for ((i=0;i<20;i++)); do
-    if (( i < percent / 5 )); then bar+='█'; else bar+='░'; fi
-  done
-  zalo_ui_print "$ZALO_BLUE" "  [$bar] ${percent}%  [$ZALO_UI_STAGE/$ZALO_UI_TOTAL] $*"
+  local indicator
+  printf -v indicator '  [%02d/%02d]  %s' "$ZALO_UI_STAGE" "$ZALO_UI_TOTAL" "$*"
+  zalo_ui_print "$ZALO_BLUE" "$indicator"
 }
 zalo_ui_finish() {
   (( ZALO_UI_VISIBLE )) || return 0
-  zalo_ui_print "$ZALO_GREEN" "  [████████████████████] 100%  ·  HOÀN TẤT $ZALO_UI_STAGE/$ZALO_UI_TOTAL BƯỚC"
+  zalo_ui_print "$ZALO_GREEN" "  HOÀN TẤT  ·  $ZALO_UI_STAGE/$ZALO_UI_TOTAL bước (100%)"
 }
 die(){ zalo_ui_print "$ZALO_RED" "[ZALO-ERROR] $*" >&2; exit 1; }
 info(){

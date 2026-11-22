@@ -16,9 +16,14 @@ FIX_ZALO=0
 UPDATE_ZALO=0
 FIX_ZALO_LOGIN=0
 REPAIR_DESKTOP=0
+FIX_OFFICE=0
 ZALO_VARIANT='chat'
+OFFICE_SECONDARY='auto'
 BACKUP_DIR=''
 REPORT_PATH="${ROOT_DIR}/setup-report.txt"
+REPORT_HTML_PATH=''
+OPEN_HTML_REPORT=1
+UI_VERBOSE=0
 LOG_PATH="${ROOT_DIR}/setup.log"
 declare -a WARNINGS=()
 declare -a FAILURES=()
@@ -27,12 +32,13 @@ UI_VISIBLE=0
 UI_STAGE=0
 UI_TOTAL=0
 UI_RESET=$'\033[0m'
-UI_CYAN=$'\033[1;36m'
-UI_BLUE=$'\033[1;34m'
-UI_GREEN=$'\033[1;32m'
-UI_YELLOW=$'\033[1;33m'
-UI_RED=$'\033[1;31m'
-UI_BOLD=$'\033[1m'
+# Restrained slate palette, readable on GNOME Terminal dark and light themes.
+UI_CYAN=$'\033[38;5;110m'
+UI_BLUE=$'\033[38;5;109m'
+UI_GREEN=$'\033[38;5;108m'
+UI_YELLOW=$'\033[38;5;179m'
+UI_RED=$'\033[38;5;167m'
+UI_MUTED=$'\033[38;5;245m'
 
 ui_init() {
   UI_COLOR=0 UI_VISIBLE=0 UI_STAGE=0
@@ -49,32 +55,32 @@ ui_paint() {
 
 ui_banner() {
   (( UI_VISIBLE )) || return 0
-  ui_paint "$UI_CYAN" '╭──────────────────────────────────────────────────────╮'
-  ui_paint "$UI_CYAN" '│   ███╗  ██╗  NAMHH  /  UNIVERSAL LINUX OFFICE KIT  │'
-  ui_paint "$UI_CYAN" '│   ████╗ ██║  Ubuntu · Mint · One-command setup     │'
-  ui_paint "$UI_CYAN" '╰──────────────────────────────────────────────────────╯'
-  ui_paint "$UI_BOLD" '  CREATED BY NAMHH  ·  DESIGN: huynhoainam@gmail.com'
+  ui_paint "$UI_CYAN" '  NAMHH  /  UNIVERSAL LINUX OFFICE KIT'
+  ui_paint "$UI_MUTED" '  Ubuntu · Linux Mint  |  Cài đặt & sửa lỗi desktop'
+  ui_paint "$UI_MUTED" '  Design: huynhoainam@gmail.com'
+  ui_paint "$UI_MUTED" '  ───────────────────────────────────────────────────'
   printf '\n'
 }
 
 ui_stage() {
   (( UI_STAGE += 1 ))
   (( UI_VISIBLE && UI_TOTAL > 0 )) || return 0
-  local percent=$(((UI_STAGE-1)*100/UI_TOTAL)) bar='' i
-  for ((i=0;i<20;i++)); do
-    if (( i < percent / 5 )); then bar+='█'; else bar+='░'; fi
-  done
-  ui_paint "$UI_BLUE" "  [$bar] ${percent}%  [$UI_STAGE/$UI_TOTAL] $*"
+  local indicator
+  printf -v indicator '  [%02d/%02d]  %s' "$UI_STAGE" "$UI_TOTAL" "$*"
+  ui_paint "$UI_BLUE" "$indicator"
+  # Optional pause for GitHub Actions' terminal screenshot only; unset in normal installs.
+  if [[ -n "${UI_STAGE_DELAY:-}" ]]; then sleep "$UI_STAGE_DELAY"; fi
 }
 
 ui_finish() {
   (( UI_VISIBLE )) || return 0
   if ((${#FAILURES[@]})); then
-    ui_paint "$UI_RED" "  ✗ DỪNG: ${#FAILURES[@]} lỗi · ${#WARNINGS[@]} cảnh báo · xem $REPORT_PATH"
+    ui_paint "$UI_RED" "  LỖI  ·  ${#FAILURES[@]} lỗi / ${#WARNINGS[@]} cảnh báo"
   else
-    ui_paint "$UI_GREEN" "  [████████████████████] 100%  ·  HOÀN TẤT ${UI_STAGE}/${UI_TOTAL} BƯỚC"
-    ((${#WARNINGS[@]} == 0)) || ui_paint "$UI_YELLOW" "  ⚠ Có ${#WARNINGS[@]} cảnh báo trong $REPORT_PATH"
+    ui_paint "$UI_GREEN" "  HOÀN TẤT  ·  ${UI_STAGE}/${UI_TOTAL} bước (100%)"
+    ((${#WARNINGS[@]} == 0)) || ui_paint "$UI_YELLOW" "  CẢNH BÁO   ·  ${#WARNINGS[@]} mục cần xem lại"
   fi
+  ui_paint "$UI_MUTED" "  Báo cáo: $REPORT_HTML_PATH"
 }
 
 usage() {
@@ -95,8 +101,13 @@ Usage: ./setup.sh [options]
   --fix-zalo-login              Update Zalo, preserve old data, retry stuck QR login
   --update-zalo                 Update Zalo from its verified upstream release
   --repair-desktop              Repair Vietnamese input, Flameshot GUI and Zalo
+  --fix-office                  Check office suites; prefer WPS, keep at most 2 new suites
   --zalo-variant chat|full      Zalo package (default: chat; full is legacy)
+  --office-secondary auto|libreoffice|genoffice  Second office suite (default: auto)
   --report PATH                  Write report to PATH
+  --report-html PATH             Write user-friendly HTML report to PATH
+  --no-open-report               Do not open HTML report automatically
+  --verbose                      Show technical details in terminal (always logged)
   -h, --help                     Show help
 EOF
 }
@@ -105,12 +116,18 @@ log() {
   local line="[$(date '+%F %T')] $*" color=''
   printf '%s\n' "$line" >> "$LOG_PATH"
   case "$*" in
-    *FAIL:*|*'failed'*|*'thất bại'*) color="$UI_RED" ;;
-    *WARN:*|*'cảnh báo'*) color="$UI_YELLOW" ;;
-    *PASS:*|*'completed'*|*'bỏ qua'*|*'skipping'*) color="$UI_GREEN" ;;
-    Module:*|*'Module:'*) color="$UI_CYAN" ;;
+    FAIL:*|*'FAIL:'*) color="$UI_RED" ;;
+    WARN:*|*'WARN:'*) color="$UI_YELLOW" ;;
+    PASS:*|*'PASS:'*) color="$UI_GREEN" ;;
+    Module:*|*'Module:'*) color="$UI_MUTED" ;;
     *) color='' ;;
   esac
+  if (( UI_VISIBLE && ! UI_VERBOSE )); then
+    case "$*" in
+      PASS:*|WARN:*|FAIL:*) ;;
+      *) return 0 ;;
+    esac
+  fi
   ui_paint "$color" "$line"
 }
 warn() { WARNINGS+=("$*"); log "WARN: $*"; }
@@ -223,7 +240,7 @@ desktop_is_cinnamon() {
 }
 
 install_deb_url() {
-  local name="$1" url="$2" target
+  local name="$1" url="$2" digest="${3:-}" target
   target="${TMPDIR:-/tmp}/${name}.deb"
   if (( ! DRY_RUN )) && package_installed "$name"; then
     log "Already installed: $name; skipping download"
@@ -232,10 +249,15 @@ install_deb_url() {
   log "Downloading official package: $name"
   if (( DRY_RUN )); then
     log "+ curl -fL --retry 3 -o $target $url"
+    [[ -z "$digest" ]] || log "+ sha256sum -c ($digest)"
     log "+ sudo apt-get install -y $target"
     return 0
   fi
   curl -fL --retry 3 --retry-delay 2 -o "$target" "$url" || { fail "Download failed: $name"; return 1; }
+  if [[ -n "$digest" ]] && ! printf '%s  %s\n' "$digest" "$target" | sha256sum --check --status; then
+    fail "SHA-256 mismatch: $name; refusing installation"
+    return 1
+  fi
   sudo apt-get install -y "$target" || { fail "Install failed: $name"; return 1; }
   rm -f "$target"
 }
@@ -283,12 +305,91 @@ module_base() {
     openvpn network-manager-openvpn network-manager-openvpn-gnome || true
 }
 
+office_suite_installed() {
+  case "$1" in
+    wps) package_installed wps-office || command -v wps >/dev/null 2>&1 ;;
+    libreoffice) package_installed libreoffice-common || package_installed libreoffice || command -v libreoffice >/dev/null 2>&1 ;;
+    genoffice) package_installed genoffice || command -v genoffice >/dev/null 2>&1 ;;
+    *) return 2 ;;
+  esac
+}
+
+office_suite_count() {
+  local suite count=0
+  for suite in wps libreoffice genoffice; do
+    if office_suite_installed "$suite"; then ((count+=1)); fi
+  done
+  printf '%s\n' "$count"
+}
+
+module_office_suites() {
+  local count secondary arch suite suite_label
+  count="$(office_suite_count)"
+  log "Office suite: phát hiện $count/2 bộ (WPS, LibreOffice, GenOffice)"
+  if (( count > 2 )); then
+    warn "Đã có $count bộ Office: không gỡ ứng dụng đang dùng; không cài thêm. Hãy quyết định bộ muốn giữ."
+    return 0
+  fi
+
+  # WPS is first priority. Never install a third suite just to meet the preference.
+  if ! office_suite_installed wps; then
+    if (( count >= 2 )); then
+      warn 'WPS chưa có nhưng đã đủ 2 bộ Office; giữ nguyên, không tự gỡ ứng dụng cũ.'
+    elif (( SKIP_THIRD_PARTY )); then
+      log 'WPS bỏ qua theo --skip-third-party'
+    else
+      arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
+      if [[ "$arch" == amd64 ]]; then
+        # Pinned to the WPS package and digest used in the Flathub packaging manifest.
+        install_deb_url wps-office 'https://wdl1.pcfg.cache.wpscdn.com/wpsdl/wpsoffice/download/linux/11723/wps-office_11.1.0.11723.XA_amd64.deb' 'fe6326210f69d94efdbf2728914d293036be391b93a614f58cd0e1ff1d4923b3' || warn 'Không cài được WPS; giữ các bộ đã có.'
+      else
+        warn "WPS .deb dành cho amd64; máy hiện dùng $arch"
+      fi
+    fi
+  else
+    log 'WPS Office đã cài; bỏ qua tải lại.'
+  fi
+
+  count="$(office_suite_count)"
+  secondary="$OFFICE_SECONDARY"
+  if [[ "$secondary" == auto ]]; then
+    if office_suite_installed genoffice && ! office_suite_installed libreoffice; then
+      secondary=genoffice
+    else
+      secondary=libreoffice
+    fi
+  fi
+  if [[ "$secondary" == libreoffice ]]; then
+    if office_suite_installed libreoffice; then
+      log 'LibreOffice đã cài; giữ nguyên bộ thứ hai.'
+    elif (( count < 2 )); then
+      install_apt libreoffice libreoffice-l10n-vi libreoffice-help-vi libreoffice-gtk3 || warn 'Không cài được LibreOffice.'
+    else
+      log 'Đã đủ 2 bộ Office; không cài thêm LibreOffice.'
+    fi
+  else
+    log 'GenOffice được chọn làm bộ thứ hai; không cài thêm LibreOffice.'
+  fi
+  for suite in wps libreoffice genoffice; do
+    case "$suite" in
+      wps) suite_label='WPS Office' ;;
+      libreoffice) suite_label='LibreOffice' ;;
+      genoffice) suite_label='GenOffice' ;;
+    esac
+    if office_suite_installed "$suite"; then
+      log "PASS: Office đã có · $suite_label"
+    else
+      log "Office chưa cài · $suite_label"
+    fi
+  done
+}
+
 module_office() {
   log 'Module: office'
-  install_apt libreoffice libreoffice-l10n-vi libreoffice-help-vi \
-    hunspell-vi hyphen-vi mythes-vi evince poppler-utils \
+  module_office_suites
+  install_apt hunspell-vi hyphen-vi mythes-vi evince poppler-utils \
     simple-scan cups system-config-printer || true
-  install_apt libreoffice-gtk3 thunderbird pdfarranger || true
+  install_apt thunderbird pdfarranger || true
   install_apt fonts-crosextra-carlito fonts-crosextra-caladea \
     fonts-liberation2 fonts-noto-color-emoji || true
   configure_office_fonts
@@ -745,9 +846,7 @@ module_third_party() {
   if [[ "$arch" == amd64 ]]; then
     install_deb_url google-chrome-stable https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb || true
     install_deb_url zoom https://zoom.us/client/latest/zoom_amd64.deb || true
-    # Current official WPS Linux Deb URL, discovered from the vendor's Linux page.
-    # Update this single value when WPS publishes a new build.
-    install_deb_url wps-office https://wdl1.pcfg.cache.wpscdn.com/wpsdl/wpsoffice/download/linux/11723/wps-office_11.1.0.11723.XA_amd64.deb || true
+    # WPS is handled first by module_office_suites to enforce the two-suite cap.
   else
     warn "Chrome/Zoom/WPS direct .deb skipped on architecture: $arch"
   fi
@@ -862,11 +961,14 @@ verify() {
     if command -v "$item" >/dev/null 2>&1; then log "PASS: $item"; else warn "Thiếu hoặc chưa có lệnh: $item"; fi
   done
   if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
-    for item in flameshot thunderbird pdfarranger libreoffice ffmpeg; do
+    for item in flameshot thunderbird pdfarranger ffmpeg; do
       command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Office app not found: $item"
     done
-    if (( ! SKIP_THIRD_PARTY )); then
-      package_installed genoffice && log 'PASS: GenOffice' || warn 'Optional app not found: GenOffice'
+    if office_suite_installed wps; then log 'PASS: WPS Office'; else warn 'WPS Office chưa có (kiểm tra tải .deb/kiến trúc)'; fi
+    if office_suite_installed libreoffice || office_suite_installed genoffice; then
+      log 'PASS: bộ Office thứ hai đã có'
+    else
+      warn 'Chưa có bộ Office thứ hai (LibreOffice hoặc GenOffice)'
     fi
     if dpkg-query -W -f='${Status}' ibus-unikey fcitx5-unikey 2>/dev/null | grep -q 'install ok installed'; then
       log 'PASS: Vietnamese input package installed'
@@ -875,7 +977,7 @@ verify() {
     fi
   fi
   if [[ "$PROFILE" == full && "$SKIP_THIRD_PARTY" == 0 ]]; then
-    for item in google-chrome microsoft-edge code docker zoom wps; do
+    for item in google-chrome microsoft-edge code docker zoom; do
       command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Optional app not found: $item"
     done
     [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]] && log 'PASS: Zalo Linux launcher' || warn 'Zalo Linux launcher not found'
@@ -902,6 +1004,18 @@ write_report() {
     echo "Log: ${LOG_PATH}"
   } >"$REPORT_PATH"
   log "Report: $REPORT_PATH"
+  if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT_DIR/report-html.py" ]]; then
+    if python3 "$ROOT_DIR/report-html.py" --report "$REPORT_PATH" --output "$REPORT_HTML_PATH" --backup "$BACKUP_DIR" >>"$LOG_PATH" 2>&1; then
+      log "PASS: Báo cáo dễ đọc: $REPORT_HTML_PATH"
+      if (( OPEN_HTML_REPORT && ! DRY_RUN )) && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v xdg-open >/dev/null 2>&1; then
+        (xdg-open "$REPORT_HTML_PATH" >/dev/null 2>&1 </dev/null &)
+      fi
+    else
+      log 'WARN: Không xuất được báo cáo HTML; vẫn có báo cáo văn bản.'
+    fi
+  else
+    log 'WARN: Chưa có Python 3 hoặc report-html.py; vẫn có báo cáo văn bản.'
+  fi
 }
 
 main() {
@@ -922,15 +1036,25 @@ main() {
       --fix-zalo-login) FIX_ZALO_LOGIN=1; shift ;;
       --update-zalo) UPDATE_ZALO=1; shift ;;
       --repair-desktop) REPAIR_DESKTOP=1; shift ;;
+      --fix-office) FIX_OFFICE=1; shift ;;
       --zalo-variant) ZALO_VARIANT="${2:?Missing Zalo variant}"; shift 2 ;;
+      --office-secondary) OFFICE_SECONDARY="${2:?Missing office secondary}"; shift 2 ;;
       --report) REPORT_PATH="${2:?Missing report path}"; shift 2 ;;
+      --report-html) REPORT_HTML_PATH="${2:?Missing HTML report path}"; shift 2 ;;
+      --no-open-report) OPEN_HTML_REPORT=0; shift ;;
+      --verbose) UI_VERBOSE=1; shift ;;
       -h|--help) usage; return 0 ;;
       *) usage >&2; return 2 ;;
     esac
   done
   case "$PROFILE" in minimal|office|full) ;; *) fail "Profile không hợp lệ: $PROFILE"; return 2 ;; esac
   case "$ZALO_VARIANT" in chat|full) ;; *) fail "Zalo variant không hợp lệ: $ZALO_VARIANT"; return 2 ;; esac
-  if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; fi
+  case "$OFFICE_SECONDARY" in auto|libreoffice|genoffice) ;; *) fail "Office secondary không hợp lệ: $OFFICE_SECONDARY"; return 2 ;; esac
+  if [[ -z "$REPORT_HTML_PATH" ]]; then
+    if [[ "$REPORT_PATH" == *.txt ]]; then REPORT_HTML_PATH="${REPORT_PATH%.txt}.html"
+    else REPORT_HTML_PATH="${REPORT_PATH}.html"; fi
+  fi
+  if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; FIX_OFFICE=1; fi
   if (( FIX_ZALO_LOGIN )); then FIX_ZALO=1; UPDATE_ZALO=1; fi
   ui_init
   ui_banner
@@ -939,10 +1063,11 @@ main() {
     return 2
   fi
   require_platform || { write_report; return 1; }
-  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO )); then
-    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
+  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE )); then
+    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
     ui_stage 'Sao lưu cấu hình trước khi sửa'
     backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
+    if (( FIX_OFFICE )); then ui_stage 'Kiểm tra Office · ưu tiên WPS, tối đa 2 bộ'; module_office_suites || fail 'Không thể kiểm tra bộ Office'; fi
     if (( FIX_UNIKEY )); then ui_stage 'Sửa bộ gõ tiếng Việt'; module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
     if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Alt+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
     if (( FIX_ZALO || UPDATE_ZALO )); then
@@ -988,7 +1113,11 @@ main() {
     ui_stage 'Media và Flameshot GUI'
     module_media
     ui_stage 'GenOffice'
-    module_genoffice
+    if [[ "$OFFICE_SECONDARY" == genoffice ]] && (( $(office_suite_count) < 2 )); then
+      module_genoffice
+    else
+      log 'GenOffice: không cài thêm mặc định để giữ tối đa 2 bộ Office.'
+    fi
   fi
   if [[ "$PROFILE" == full ]]; then
     ui_stage 'Công cụ lập trình'

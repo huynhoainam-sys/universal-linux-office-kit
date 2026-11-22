@@ -11,3 +11,27 @@ jobs:
       - uses: actions/checkout@v4
       - name: Bash syntax and mocked install regression tests
         run: bash tests/test_static.sh
+      - name: Ubuntu 24.04 one-command dry run (no system changes)
+        run: |
+          mkdir -p ubuntu-captures
+          script --quiet --return --command 'env FORCE_COLOR=1 TERM=xterm-256color bash setup.sh --repair-desktop --dry-run --yes --no-open-report --report ubuntu-captures/report.txt' ubuntu-captures/terminal-session.log
+          test -s ubuntu-captures/report.html
+          grep -q 'WPS Office' ubuntu-captures/report.html
+          grep -q 'Log Out' ubuntu-captures/report.html
+          grep -q 'VNI' ubuntu-captures/report.html
+      - name: Capture Ubuntu terminal phases and HTML report
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xterm imagemagick
+          bash .github/scripts/capture-ubuntu.sh
+      - name: Upload genuine Ubuntu 24.04 screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: namhh-ubuntu-24.04-preview
+          path: |
+            ubuntu-captures/*.png
+            ubuntu-captures/report.html
+            ubuntu-captures/report.txt
+            ubuntu-captures/terminal-session.log
+          if-no-files-found: warn

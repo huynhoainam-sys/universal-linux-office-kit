@@ -1,24 +1,41 @@
-# Universal Linux Office Kit
+# Universal Linux Office Kit — NAMHH
 
-Một bộ bootstrap **1 click** cho Ubuntu và Linux Mint mới cài. Mục tiêu là đưa máy về trạng thái dùng được cho văn phòng, học tập và làm việc hằng ngày, nhưng vẫn giữ quyền kiểm soát: không chạy lệnh mơ hồ từ Internet, không xóa ứng dụng sẵn có, không tự thêm kho bên thứ ba.
+Bộ cài đơn giản cho người **chuyển từ Windows sang Ubuntu / Linux Mint**. Cài các ứng dụng cần dùng, tránh cài trùng và tự mở trang hướng dẫn tiếng Việt sau khi hoàn tất.
 
-**Terminal NAMHH:** khi chạy tương tác trên Ubuntu Terminal, bộ cài hiện banner **CREATED BY NAMHH — DESIGN: huynhoainam@gmail.com**, màu trạng thái (xanh dương: đang chạy, xanh lá: PASS, vàng: WARN, đỏ: FAIL) và thanh tiến trình theo **số bước thực tế**. Log `setup.log` và `setup-report.txt` vẫn là văn bản thuần không chứa mã ANSI. Đặt `NO_COLOR=1` nếu không muốn màu; khi chạy qua CI/pipe, banner và thanh tiến trình được ẩn để log gọn.
+## Cài nhanh: chỉ cần 1 lệnh
 
-## Chạy nhanh
-
-### Sửa Ubuntu 24.04 GNOME/Wayland: tiếng Việt, Flameshot, Zalo (một lần chạy)
-
-Sao chép nguyên khối lệnh sau vào Terminal **trong tài khoản desktop**, không chạy cả khối bằng `sudo`. Lệnh dùng `git clone` hoặc cập nhật bản clone hiện có, sau đó chỉ sửa ba ứng dụng, không chạy profile `full` và không bật/tắt VPN hay proxy:
+Mở **Terminal** bằng `Ctrl + Alt + T`, dán nguyên dòng sau và nhấn **Enter**. Nếu Ubuntu hỏi mật khẩu, nhập mật khẩu đăng nhập máy (khi gõ sẽ không hiện dấu `*`, đây là bình thường).
 
 ```bash
-command -v git >/dev/null || { sudo apt-get update && sudo apt-get install -y git; }; bash -c 'set -Eeuo pipefail; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --repair-desktop --yes; bash "$repo/doctor.sh"'
+bash -c 'set -Eeuo pipefail; command -v git >/dev/null || { sudo apt-get update && sudo apt-get install -y git; }; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --repair-desktop --yes'
 ```
 
-- GNOME: dùng **IBus Unikey**, thêm và chọn nguồn nhập; đăng xuất/đăng nhập sau khi sửa để tránh tiến trình Fcitx5 cũ. Không tự xóa cấu hình bộ gõ cũ.
-- Flameshot: cài từ APT, chạy GUI qua native Wayland/portal, tự tạo phím tắt **Ctrl+Alt+S** và autostart. Lần chụp đầu có thể phải cho phép quyền chụp màn hình trong GNOME. Do giới hạn upstream, cần bấm thử thật để xác nhận GUI.
-- Zalo: mặc định bản `chat` AppImage mới nhất trên x86_64, dùng launcher tối ưu IBus/XWayland trên GNOME Wayland; có `ZALO_OZONE_PLATFORM=auto` để thử Electron native Wayland. Repair giữ dữ liệu và không tải lại nếu AppImage còn dùng được.
-- Cấu hình desktop trước khi sửa được sao lưu vào `~/.local/state/ulok/backups/`; nếu bước sửa trả lỗi, script thử khôi phục cấu hình đã lưu. Zalo giữ bản AppImage trước (`*.previous`) khi cập nhật, có sao lưu chat có điều kiện theo dung lượng còn trống.
-- Nếu proxy FPT chặn `git clone` nhưng đã clone Office Kit trước đó, lệnh sẽ dùng bản Office Kit cục bộ. Office Kit **đã kèm installer Zalo**; không cần tải repo Zalo riêng. Khi GitHub Releases bị chặn, bộ cài thử hai mirror cộng đồng với kiểm tra SHA-256 theo upstream; checksum sai sẽ bị loại. Có thể dùng `ZALO_MIRROR_URL` hoặc `ZALO_OFFLINE_APPIMAGE` để chỉ định nguồn được IT cho phép.
+Script tự kiểm tra và bỏ qua phần đã có. Không cần tải Zalo riêng hay thêm phần mềm để hiện giao diện Terminal.
+
+| Tự chuẩn bị | Dùng để làm gì? |
+|---|---|
+| **WPS Office** ưu tiên, thêm LibreOffice hoặc GenOffice khi cần | Soạn Word, Excel, PowerPoint, PDF; tối đa **2 bộ Office được bổ sung** |
+| **Unikey** (IBus trên Ubuntu GNOME) | Gõ tiếng Việt Telex hoặc VNI |
+| **Flameshot — Ctrl + Alt + S** | Chụp một vùng màn hình |
+| **Zalo Linux** | Chat bằng ứng dụng desktop; giữ dữ liệu cũ và hỗ trợ nguồn tải thay thế có kiểm tra SHA-256 |
+| **Báo cáo HTML** | Tự mở trên trình duyệt; giải thích từng ứng dụng bằng tiếng Việt, có hình minh họa |
+
+## Khi cài xong, làm 3 việc
+
+1. **Lưu công việc**, bấm góc trên bên phải màn hình → nút nguồn **⏻** → **Log Out / Đăng xuất** → đăng nhập lại. Đây là bước giúp bộ gõ áp dụng cấu hình mới.
+2. **Chọn VNI:** Settings → Keyboard → Input Sources → Vietnamese (Unikey). Nhấn **Super (phím Windows) + Space** để chọn Unikey; mở tùy chọn Unikey trên thanh trên cùng và đặt **VNI + Unicode**. Thử `tie6ng1 vie6t5` → **tiếng việt**.
+3. **Mở Zalo, quét QR** và xác nhận trên điện thoại. Nếu cứ quay **“Đang đăng nhập…”** sau vài phút, lưu công việc → **Restart / Khởi động lại máy** → mở Zalo và quét mã mới. Không xóa dữ liệu chat.
+
+Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó có hướng dẫn minh họa từng bước đăng xuất/khởi động lại, cách gõ VNI, danh sách ứng dụng thực tế và công dụng. Có thể mở lại bằng cách nhấp tệp `setup-report.html` trong thư mục `universal-linux-office-kit` ở **Home**.
+
+> **Lưu ý:** Nếu máy đã có 2–3 bộ Office khác nhau, kit không tự gỡ phần mềm/dữ liệu. Nếu mạng cơ quan chặn GitHub hoặc nguồn tải, bộ cài ghi cảnh báo; bạn có thể nhờ IT kiểm tra. Trên GNOME Wayland, Flameshot đôi khi cần cho phép quyền chụp màn hình lần đầu.
+
+---
+
+<details>
+<summary><strong>Tài liệu dành cho IT · cài nâng cao, cập nhật, sao lưu và xử lý sự cố</strong></summary>
+
+Các mục bên dưới dành cho người cần kiểm tra kỹ thuật hoặc chọn profile cài khác. Người dùng bình thường chỉ cần làm theo **một lệnh** ở trên.
 
 **Cập nhật Zalo riêng** (không cài toàn bộ Office Kit):
 
@@ -67,10 +84,10 @@ bash -n setup.sh && bash setup.sh --profile full --yes
 Các profile:
 
 - `minimal`: sửa APT/dpkg, cập nhật hệ thống, công cụ nén, mạng, font và in ấn.
-- `office`: minimal + LibreOffice, PDF, scan, media, browser integration và GenOffice trên máy tương thích.
+- `office`: minimal + WPS Office (ưu tiên) và tối đa một bộ Office khác (mặc định LibreOffice), PDF, scan, media, browser integration.
 - `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker, Zoom và Zalo Linux bản `chat` hiện hành. Muốn thử `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
-Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
+Tùy chọn: `--repair-desktop` (bao gồm kiểm tra WPS/Office), `--fix-office` (chỉ kiểm tra/cài bộ Office), `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
 
 ## App được cài và công dụng
 
@@ -82,16 +99,16 @@ Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`
 | `unzip`, `zip`, `p7zip-full`, `rsync` | Giải nén, nén và sao chép dữ liệu |
 | `jq`, `bash-completion`, `htop`, `ncdu` | Công cụ terminal, xem tiến trình và dung lượng đĩa |
 | `network-manager`, `dnsutils` | Quản lý mạng và chẩn đoán DNS |
-| `ufw` | Tường lửa cơ bản; script bật mặc định |
+| `ufw` | Tường lửa cơ bản; không tự bật để tránh gián đoạn VPN/remote. Chỉ bật với `--enable-ufw` |
 | `ca-certificates`, `gpg` | HTTPS và xác minh chữ ký kho phần mềm |
 
 ### Văn phòng — profile `office` và `full`
 
 | App/gói | Công dụng |
 |---|---|
-| LibreOffice Writer/Calc/Impress | Thay Word/Excel/PowerPoint cho tài liệu, bảng tính và trình chiếu |
-| GenOffice | Bộ soạn thảo AI cho DOCX/XLSX/PPTX/PDF; ưu tiên release API chính thức. Khi API lỗi 403, thử bản dự phòng cố định v0.11.727 và xác minh SHA-256 trước cài. Hỗ trợ amd64/glibc 2.34+. |
-| `libreoffice-l10n-vi`, `libreoffice-help-vi` | Giao diện và trợ giúp tiếng Việt |
+| **WPS Office (ưu tiên số 1)** | Writer, Spreadsheet, Presentation, PDF, giao diện quen thuộc; `.deb` WPS trên x86_64, chỉ tải nếu chưa có |
+| LibreOffice Writer/Calc/Impress (mặc định bộ thứ hai) | Word/Excel/PowerPoint; chỉ cài khi chưa có đủ hai bộ, kèm `libreoffice-l10n-vi` và `libreoffice-help-vi` |
+| GenOffice (tùy chọn bộ thứ hai) | Giữ nguyên nếu đã cài; muốn cài mới thay LibreOffice dùng `--office-secondary genoffice --profile office`. Khi API lỗi 403, dùng fallback có SHA-256. Hỗ trợ amd64/glibc 2.34+. |
 | Hunspell/Hyphen/MyThes tiếng Việt | Kiểm tra chính tả, ngắt dòng và từ điển |
 | Evince, Poppler | Đọc, trích xuất và xử lý PDF |
 | Simple Scan, CUPS, System Config Printer | Scan và cài máy in |
@@ -114,7 +131,6 @@ Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`
 | Visual Studio Code | Lập trình, chỉnh sửa code, terminal và extension | Kho Microsoft chính thức |
 | Docker Engine + Compose | Container, môi trường dev và triển khai dịch vụ | Kho Docker trên Ubuntu; gói distro trên Mint |
 | Zoom | Họp trực tuyến | `.deb` chính thức; chỉ x86_64 |
-| WPS Office | Writer, Spreadsheet, Presentation và PDF; gần giao diện Microsoft Office | `.deb` chính thức từ WPS; chỉ x86_64 |
 | Remmina + RDP/VNC | Điều khiển máy Windows/Linux từ xa | Kho Ubuntu/Mint |
 | OpenSSH client | Kết nối server và copy file qua SSH | Kho Ubuntu/Mint |
 | Python, pip, venv, build-essential | Lập trình, automation và biên dịch package | Kho Ubuntu/Mint |
@@ -187,7 +203,7 @@ Nếu in PDF lúc A4 lúc A5, dùng `bash print-paper.sh TEN_MAY_IN file.pdf`. S
 
 ### Chống cài trùng
 
-APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua tải `.deb` nếu đã có ứng dụng; bộ gõ giữ cấu hình cá nhân còn dùng được. Zalo bỏ qua tải lại khi có AppImage, launcher và marker đúng biến thể; dùng `--update-zalo` để cập nhật chủ động. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
+APT tự giữ các gói đã cài. Bộ cài kiểm tra WPS/LibreOffice/GenOffice trước, chỉ bổ sung cho đủ tối đa **2 bộ**; WPS luôn được ưu tiên khi còn chỗ. Nếu máy đã có 2 bộ khác WPS hoặc đã có 3 bộ, script **không tự gỡ** dữ liệu/ứng dụng, chỉ ghi cảnh báo. Chrome và Zoom bỏ qua tải `.deb` nếu đã có; bộ gõ giữ cấu hình cá nhân còn dùng được. Zalo bỏ qua tải lại khi có AppImage, launcher và marker đúng biến thể; dùng `--update-zalo` để cập nhật chủ động. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
 
 ## Thiết kế
 
@@ -200,7 +216,7 @@ APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua t�
 
 ## Giới hạn có chủ ý
 
-Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định. Zalo Linux trong profile `full` là bản AppImage cộng đồng, không phải ứng dụng Linux chính thức của Zalo. Có thể bỏ qua cùng các app bên thứ ba bằng `--skip-third-party`. Installer Zalo đi kèm bản Office Kit hiện tại, không tải mã script mới vào lúc chạy; chỉ tải AppImage từ upstream/mirror và kiểm tra SHA-256 khi upstream có digest. Các nguồn bị proxy doanh nghiệp chặn vẫn cần được IT cho phép.
+Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit ưu tiên WPS Office nếu máy x86_64 và mạng truy cập được nguồn WPS, LibreOffice là bộ bổ sung mặc định. Zalo Linux trong profile `full` là bản AppImage cộng đồng, không phải ứng dụng Linux chính thức của Zalo. Có thể bỏ qua cùng các app bên thứ ba bằng `--skip-third-party`. Installer Zalo đi kèm bản Office Kit hiện tại, không tải mã script mới vào lúc chạy; chỉ tải AppImage từ upstream/mirror và kiểm tra SHA-256 khi upstream có digest. Các nguồn bị proxy doanh nghiệp chặn vẫn cần được IT cho phép.
 
 File checksum được tham khảo trong thiết kế: `universal-linux-office-kit-v7.3-pro-max-report-printer-optional.sha256` ghi hash `9c7ebdf1af1131eacbf9bd764016e52ce1f4d2c9891bd02274fe7ff185204a28` cho ZIP trỏ tới `/mnt/data/...`. ZIP không có trong máy hiện tại nên chưa thể xác minh hash thực tế.
 
@@ -232,3 +248,5 @@ Runtime installer cần Ubuntu/Mint thật hoặc VM; không tuyên bố test c�
 - `canonical/ubuntu-desktop-provision`: quy trình provisioning chính thức của Ubuntu.
 
 Kit này lấy ý tưởng, không nhúng mã hay tải payload của các repo trên.
+
+</details>
