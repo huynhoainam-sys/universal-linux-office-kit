@@ -4,6 +4,30 @@ Một bộ bootstrap **1 click** cho Ubuntu và Linux Mint mới cài. Mục ti�
 
 ## Chạy nhanh
 
+### Sửa Ubuntu 24.04 GNOME/Wayland: tiếng Việt, Flameshot, Zalo (một lần chạy)
+
+Sao chép nguyên khối lệnh sau vào Terminal **trong tài khoản desktop**, không chạy cả khối bằng `sudo`. Lệnh dùng `git clone` hoặc cập nhật bản clone hiện có, sau đó chỉ sửa ba ứng dụng, không chạy profile `full` và không bật/tắt VPN hay proxy:
+
+```bash
+sudo apt-get update && sudo apt-get install -y git && bash -c 'set -Eeuo pipefail; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --repair-desktop --yes; bash "$repo/doctor.sh"'
+```
+
+- GNOME: dùng **IBus Unikey**, thêm và chọn nguồn nhập; đăng xuất/đăng nhập sau khi sửa để tránh tiến trình Fcitx5 cũ. Không tự xóa cấu hình bộ gõ cũ.
+- Flameshot: cài từ APT, chạy GUI qua native Wayland/portal, tự tạo phím tắt **Ctrl+Shift+S** và autostart. Lần chụp đầu có thể phải cho phép quyền chụp màn hình trong GNOME. Do giới hạn upstream, cần bấm thử thật để xác nhận GUI.
+- Zalo: mặc định bản `chat` AppImage mới nhất trên x86_64, dùng launcher tối ưu IBus/XWayland trên GNOME Wayland; có `ZALO_OZONE_PLATFORM=auto` để thử Electron native Wayland. Repair giữ dữ liệu và không tải lại nếu AppImage còn dùng được.
+- Cấu hình desktop trước khi sửa được sao lưu vào `~/.local/state/ulok/backups/`; nếu bước sửa trả lỗi, script thử khôi phục cấu hình đã lưu. Zalo giữ bản AppImage trước (`*.previous`) khi cập nhật, có sao lưu chat có điều kiện theo dung lượng còn trống.
+- Nếu proxy FPT chặn `git clone` nhưng đã clone trước đó, lệnh sẽ thử sử dụng bản cục bộ. Nếu proxy chặn **GitHub Releases** khi chưa có AppImage, không thể cài mới Zalo chỉ bằng script; cần proxy/allowlist được IT cho phép hoặc tệp cài đã xác minh. Không tự bỏ qua proxy của đơn vị.
+
+**Cập nhật Zalo riêng** (không cài toàn bộ Office Kit):
+
+```bash
+bash "$HOME/universal-linux-office-kit/setup.sh" --update-zalo --yes
+```
+
+**Chẩn đoán:** `bash "$HOME/universal-linux-office-kit/doctor.sh"` và `bash "$HOME/zalo-linux-chat-kit/zalo-doctor.sh"` (nếu có clone Zalo riêng).
+
+---
+
 ```bash
 sudo apt-get update && sudo apt-get install -y git
 git clone https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$HOME/universal-linux-office-kit"
@@ -34,9 +58,9 @@ Các profile:
 
 - `minimal`: sửa APT/dpkg, cập nhật hệ thống, công cụ nén, mạng, font và in ấn.
 - `office`: minimal + LibreOffice, PDF, scan, media, browser integration và GenOffice trên máy tương thích.
-- `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker, Zoom và Zalo Linux bản full.
+- `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker, Zoom và Zalo Linux bản `chat` hiện hành. Muốn thử `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
-Tùy chọn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
+Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
 
 ## App được cài và công dụng
 
@@ -86,7 +110,7 @@ Tùy chọn: `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-
 | Python, pip, venv, build-essential | Lập trình, automation và biên dịch package | Kho Ubuntu/Mint |
 | Inxi, GParted, GNOME Disks, Nmap, ethtool, iperf3, smartmontools | Chẩn đoán máy và mạng | Kho Ubuntu/Mint |
 | Flatpak + Flathub | Cài thêm ứng dụng desktop sandbox | Flatpak/Flathub |
-| Zalo Linux (full) | Nhắn tin qua AppImage cộng đồng, tạo launcher và icon trong tài khoản đang chạy | Installer của `huynhoainam-sys/zalo-linux-chat-kit`; AppImage từ `VN-Linux-Family/zalo-for-linux` |
+| Zalo Linux (chat, `full` tùy chọn) | Nhắn tin qua AppImage cộng đồng, tạo launcher và icon trong tài khoản đang chạy | Installer của `huynhoainam-sys/zalo-linux-chat-kit`; AppImage từ `VN-Linux-Family/zalo-for-linux` |
 
 Zalo installer được tải bằng `git clone` từ repository `huynhoainam-sys/zalo-linux-chat-kit` (không dùng Raw GitHub). Nếu Git clone không truy cập được, kit chỉ dùng lại bản clone cục bộ có origin phù hợp. Bộ cài Zalo tự có fallback bản upstream xác minh SHA-256 khi GitHub API lỗi 403; nếu GitHub Releases cũng bị chặn thì ghi FAIL, không xóa dữ liệu chat.
 
@@ -153,7 +177,7 @@ Nếu in PDF lúc A4 lúc A5, dùng `bash print-paper.sh TEN_MAY_IN file.pdf`. S
 
 ### Chống cài trùng
 
-APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua tải `.deb` nếu đã có ứng dụng; bộ gõ giữ nguyên IBus/Fcitx5 Unikey đang dùng. Zalo hiện có nhưng chưa được kit xác nhận là bản full sẽ được cập nhật đúng một lần; các lần chạy sau bỏ qua. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
+APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua tải `.deb` nếu đã có ứng dụng; bộ gõ giữ cấu hình cá nhân còn dùng được. Zalo bỏ qua tải lại khi có AppImage, launcher và marker đúng biến thể; dùng `--update-zalo` để cập nhật chủ động. Canon UFR II bỏ qua khi driver tương ứng đã cài. Kit không gọi lại các script rời trong bộ cũ, không tạo thêm launcher Zalo Web/PWA hay cài Bottles/AnyDesk mặc định.
 
 ## Thiết kế
 

@@ -21,11 +21,14 @@ grep -q 'fallback_sha256=' "$ROOT/setup.sh" || fail 'GenOffice SHA-256 fallback 
 grep -q 'target="${TMPDIR:-/tmp}/${name}.deb"' "$ROOT/setup.sh" || fail 'Deb target has nounset ordering bug'
 if grep -q 'raw.githubusercontent.com' "$ROOT/setup.sh"; then fail 'Raw GitHub dependency remains'; fi
 grep -q 'zalo-linux-chat-kit.git' "$ROOT/setup.sh" || fail 'Zalo Git source missing'
-grep -q 'ZALO_VARIANT=full bash' "$ROOT/setup.sh" || fail 'Zalo full variant missing'
+grep -q 'ZALO_VARIANT=' "$ROOT/setup.sh" || fail 'Zalo variant selector missing'
+grep -q -- '--repair-desktop' "$ROOT/setup.sh" || fail 'One-shot desktop repair missing'
+grep -q -- '--fix-zalo' "$ROOT/setup.sh" || fail 'Zalo repair missing'
 grep -q 'git clone --quiet --depth 1' "$ROOT/setup.sh" || fail 'Zalo Git clone missing'
 grep -q '\.ulok-full-installed' "$ROOT/setup.sh" || fail 'Zalo dedup marker missing'
 grep -q 'install_apt flameshot' "$ROOT/setup.sh" || fail 'Flameshot installer missing'
 grep -q '<Primary><Shift>s' "$ROOT/setup.sh" || fail 'Flameshot shortcut missing'
+grep -q "script --quiet --return --command 'flameshot gui'" "$ROOT/setup.sh" || fail 'Flameshot GNOME Wayland PTY workaround missing'
 grep -q 'ibus-unikey' "$ROOT/setup.sh" || fail 'Vietnamese IBus input missing'
 grep -q 'fcitx5-unikey' "$ROOT/setup.sh" || fail 'Vietnamese Fcitx input missing'
 grep -q -- '--fix-unikey' "$ROOT/setup.sh" || fail 'Unikey repair option missing'
@@ -38,4 +41,5 @@ bash -n "$ROOT/doctor.sh"
 bash "$ROOT/tests/test_input_method.sh"
 bash "$ROOT/tests/test_flameshot.sh"
 bash "$ROOT/tests/test_genoffice.sh"
+bash "$ROOT/tests/test_repair_flow.sh"
 echo 'PASS: static checks'

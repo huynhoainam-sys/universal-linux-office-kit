@@ -1,0 +1,13 @@
+name: Ubuntu desktop kit checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bash syntax and mocked install regression tests
+        run: bash tests/test_static.sh

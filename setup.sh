@@ -6,11 +6,17 @@ PROFILE="full"
 DRY_RUN=0
 ASSUME_YES=0
 NO_REBOOT=0
+ENABLE_UFW=0
 SKIP_FLATPAK=0
 SKIP_THIRD_PARTY=0
 CANON_UFRII_ARCHIVE=''
 FIX_UNIKEY=0
 FIX_FLAMESHOT=0
+FIX_ZALO=0
+UPDATE_ZALO=0
+REPAIR_DESKTOP=0
+ZALO_VARIANT='chat'
+BACKUP_DIR=''
 REPORT_PATH="${ROOT_DIR}/setup-report.txt"
 LOG_PATH="${ROOT_DIR}/setup.log"
 declare -a WARNINGS=()
@@ -24,11 +30,16 @@ Usage: ./setup.sh [options]
   --dry-run                      Print actions without changing the system
   --yes                          Skip confirmation
   --no-reboot                    Never offer reboot
+  --enable-ufw                   Explicitly enable firewall (off by default)
   --skip-flatpak                 Do not install Flatpak packages
   --skip-third-party             Do not install GenOffice/Chrome/Edge/VS Code/Docker/Zoom/Zalo
   --canon-ufrii-archive PATH     Install Canon UFR II from official downloaded .tar.gz
   --fix-unikey                  Repair Vietnamese input without full setup
   --fix-flameshot               Repair Flameshot without full setup
+  --fix-zalo                    Repair Zalo, or install it when missing
+  --update-zalo                 Update Zalo from its verified upstream release
+  --repair-desktop              Repair Vietnamese input, Flameshot GUI and Zalo
+  --zalo-variant chat|full      Zalo package (default: chat; full is legacy)
   --report PATH                  Write report to PATH
   -h, --help                     Show help
 EOF
@@ -45,6 +56,57 @@ run() {
 }
 
 apt_run() { run sudo apt-get "$@"; }
+
+backup_desktop_settings() {
+  (( DRY_RUN )) && { log '+ back up desktop settings'; return 0; }
+  local state="${XDG_STATE_HOME:-$HOME/.local/state}/ulok/backups"
+  mkdir -p -- "$state" || return 1
+  BACKUP_DIR="$(mktemp -d "$state/desktop-$(date +%Y%m%d-%H%M%S)-XXXXXX" 2>/dev/null)" || {
+    mkdir -p -- "$state"
+    BACKUP_DIR="$(mktemp -d "$state/desktop-$(date +%Y%m%d-%H%M%S)-XXXXXX")" || return 1
+  }
+  chmod 0700 "$BACKUP_DIR"
+  local file
+  for file in \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/ulok-flameshot.desktop" \
+    "${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-flameshot"; do
+    if [[ -f "$file" ]]; then
+      cp -p -- "$file" "$BACKUP_DIR/$(basename "$(dirname "$file")")-$(basename "$file")"
+    fi
+  done
+  if desktop_is_gnome && command -v gsettings >/dev/null; then
+    gsettings get org.gnome.desktop.input-sources sources > "$BACKUP_DIR/gnome-input-sources.txt" 2>/dev/null || true
+    gsettings get org.gnome.desktop.input-sources current > "$BACKUP_DIR/gnome-input-current.txt" 2>/dev/null || true
+    gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings > "$BACKUP_DIR/gnome-shortcuts.txt" 2>/dev/null || true
+  fi
+  log "Desktop settings backup: $BACKUP_DIR"
+}
+
+restore_desktop_settings() {
+  [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]] || return 0
+  local dest
+  for dest in \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/ulok-flameshot.desktop" \
+    "${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-flameshot"; do
+    if [[ -f "$BACKUP_DIR/$(basename "$(dirname "$dest")")-$(basename "$dest")" ]]; then
+      cp -p -- "$BACKUP_DIR/$(basename "$(dirname "$dest")")-$(basename "$dest")" "$dest" || warn "Không thể khôi phục $dest"
+    fi
+  done
+  if desktop_is_gnome && command -v gsettings >/dev/null; then
+    if [[ -s "$BACKUP_DIR/gnome-input-sources.txt" ]]; then
+      gsettings set org.gnome.desktop.input-sources sources "$(<"$BACKUP_DIR/gnome-input-sources.txt")" || warn 'Không thể khôi phục input sources'
+    fi
+    if [[ -s "$BACKUP_DIR/gnome-input-current.txt" ]]; then
+      gsettings set org.gnome.desktop.input-sources current "$(<"$BACKUP_DIR/gnome-input-current.txt")" || warn 'Không thể khôi phục input current'
+    fi
+    if [[ -s "$BACKUP_DIR/gnome-shortcuts.txt" ]]; then
+      gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "$(<"$BACKUP_DIR/gnome-shortcuts.txt")" || warn 'Không thể khôi phục shortcut list'
+    fi
+  fi
+  warn "Đã thử khôi phục cấu hình desktop trước sửa từ $BACKUP_DIR. Các gói APT đã cài không bị gỡ."
+}
 
 require_platform() {
   [[ "$EUID" -ne 0 ]] || { fail 'Chạy ./setup.sh bằng tài khoản người dùng, không dùng sudo; script sẽ gọi sudo khi cần'; return 1; }
@@ -136,7 +198,11 @@ module_base() {
   install_apt ca-certificates curl wget git gpg unzip zip p7zip-full rsync jq \
     bash-completion software-properties-common apt-transport-https \
     network-manager dnsutils ufw htop ncdu || true
-  run sudo ufw --force enable || warn 'Không bật được UFW; kiểm tra thủ công'
+  if (( ENABLE_UFW )); then
+    run sudo ufw --force enable || warn 'Không bật được UFW; kiểm tra thủ công'
+  else
+    log 'UFW: installed if available, existing firewall state unchanged (protect VPN/remote access)'
+  fi
   install_apt xdg-utils cifs-utils smbclient gvfs-backends \
     openvpn network-manager-openvpn network-manager-openvpn-gnome || true
 }
@@ -256,12 +322,12 @@ module_vietnamese_input() {
   # by an older run. A stray Fcitx package must not override GNOME's IBus.
   if desktop_is_cinnamon || { [[ "${ID:-}" == linuxmint ]] && ! desktop_is_gnome; }; then
     if (( DRY_RUN )) || ! package_installed fcitx5-unikey; then
-      install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || true
+      install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || return 1
     fi
     configure_fcitx5_unikey
   else
     if (( DRY_RUN )) || ! package_installed ibus-unikey; then
-      install_apt ibus ibus-unikey im-config || true
+      install_apt ibus ibus-unikey im-config || return 1
     fi
     configure_ibus_unikey
   fi
@@ -337,6 +403,9 @@ configure_ibus_unikey() {
   package_installed ibus-unikey || { warn 'IBus Unikey chưa cài được'; return 0; }
   if command -v im-config >/dev/null; then
     im-config -n ibus >/dev/null 2>&1 || warn 'Không chọn được IBus qua im-config'
+  fi
+  if pgrep -u "$(id -u)" -x fcitx5 >/dev/null 2>&1; then
+    warn 'Fcitx5 vẫn chạy trong phiên GNOME; đăng xuất rồi đăng nhập lại để dùng IBus, không tự kill bộ gõ đang hoạt động'
   fi
   local component='/usr/share/ibus/component/unikey.xml' engine='' current updated
   if [[ -r "$component" ]] && command -v python3 >/dev/null; then
@@ -460,12 +529,12 @@ module_flameshot() {
     return 1
   fi
   if [[ "${XDG_SESSION_TYPE:-}" == wayland ]] && desktop_is_gnome; then
-    install_apt xdg-desktop-portal xdg-desktop-portal-gnome || true
+    install_apt xdg-desktop-portal xdg-desktop-portal-gnome || return 1
     # Install the matching native Wayland Qt backend; Ubuntu LTS versions vary.
     if command -v ldd >/dev/null 2>&1 && ldd "$(command -v flameshot)" 2>/dev/null | grep -q 'libQt6Core'; then
-      install_apt qt6-wayland || true
+      install_apt qt6-wayland || return 1
     else
-      install_apt qtwayland5 || true
+      install_apt qtwayland5 || return 1
     fi
   fi
   configure_flameshot_shortcut
@@ -511,6 +580,11 @@ configure_flameshot_shortcut() {
 set -Eeuo pipefail
 if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
   export QT_QPA_PLATFORM=wayland
+  # GNOME sometimes loses the screenshot portal parent window when a hotkey
+  # launches the Qt GUI directly. Flameshot documents the shell/PTY workaround.
+  if command -v script >/dev/null 2>&1; then
+    exec script --quiet --return --command 'flameshot gui' /dev/null
+  fi
 fi
 exec flameshot gui
 EOF
@@ -656,18 +730,19 @@ EOF
 
 module_zalo() {
   (( SKIP_THIRD_PARTY )) && { log 'Zalo skipped with third-party apps'; return 0; }
-  log 'Module: Zalo Linux (full variant)'
+  log "Module: Zalo Linux ($ZALO_VARIANT variant)"
   local app_dir="${XDG_DATA_HOME:-$HOME/.local/share}/zalo-linux"
   local launcher="${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux"
   local marker="$app_dir/.ulok-full-installed"
-  if (( ! DRY_RUN )) && [[ -f "$marker" && -x "$launcher" ]]; then
-    log 'Zalo Linux full already installed by this kit; skipping duplicate installer'
+  local appimage="$app_dir/Zalo-x86_64.AppImage"
+  if (( ! DRY_RUN && ! FIX_ZALO && ! UPDATE_ZALO )) && [[ -f "$marker" && -x "$launcher" && -x "$appimage" ]] && [[ "$(<"$marker")" == "$ZALO_VARIANT" ]]; then
+    log 'Zalo Linux already installed by this kit; skipping duplicate installer (use --update-zalo to update)'
     return 0
   fi
   local repo_url='https://github.com/huynhoainam-sys/zalo-linux-chat-kit.git'
   local workdir installer local_clone local_origin
   if (( DRY_RUN )); then
-    log "+ git clone --depth 1 $repo_url; verify bash syntax; ZALO_VARIANT=full bash install-zalo-linux.sh"
+    log "+ git clone --depth 1 $repo_url; verify bash syntax; ZALO_VARIANT=$ZALO_VARIANT bash install-zalo-linux.sh"
     return 0
   fi
   command -v git >/dev/null 2>&1 || { fail 'Thiếu Git; không thể tải Zalo installer'; return 1; }
@@ -697,19 +772,27 @@ module_zalo() {
     return 1
   fi
   # Installer manages user data under HOME; do not run with sudo.
-  if ! ZALO_VARIANT=full bash "$installer"; then
+  if (( FIX_ZALO )) && [[ -x "$appimage" ]]; then
+    installer="$(dirname "$installer")/zalo-repair.sh"
+    if [[ ! -f "$installer" ]] || ! bash -n "$installer"; then
+      rm -rf -- "$workdir"
+      fail 'Zalo repair script không hợp lệ'
+      return 1
+    fi
+  fi
+  if ! ZALO_VARIANT="$ZALO_VARIANT" bash "$installer"; then
     rm -rf -- "$workdir"
     fail 'Cài Zalo Linux thất bại; xem thông báo GitHub API/Releases ở phía trên'
     return 1
   fi
   rm -rf -- "$workdir"
-  if [[ ! -x "$launcher" ]]; then
+  if [[ ! -x "$launcher" || ! -x "$appimage" ]]; then
     fail 'Zalo installer kết thúc nhưng không có launcher; không ghi nhận đã cài thành công'
     return 1
   fi
   mkdir -p -- "$app_dir"
-  printf 'full\n' > "$marker"
-  log 'PASS: Zalo Linux full installer completed'
+  if (( ! FIX_ZALO )) || [[ ! -f "$marker" ]]; then printf '%s\n' "$ZALO_VARIANT" > "$marker"; fi
+  log 'PASS: Zalo Linux installer/repair completed'
 }
 
 verify() {
@@ -770,25 +853,35 @@ main() {
       --dry-run) DRY_RUN=1; shift ;;
       --yes) ASSUME_YES=1; shift ;;
       --no-reboot) NO_REBOOT=1; shift ;;
+      --enable-ufw) ENABLE_UFW=1; shift ;;
       --skip-flatpak) SKIP_FLATPAK=1; shift ;;
       --skip-third-party) SKIP_THIRD_PARTY=1; shift ;;
       --canon-ufrii-archive) CANON_UFRII_ARCHIVE="${2:?Missing Canon archive path}"; shift 2 ;;
       --fix-unikey) FIX_UNIKEY=1; shift ;;
       --fix-flameshot) FIX_FLAMESHOT=1; shift ;;
+      --fix-zalo) FIX_ZALO=1; shift ;;
+      --update-zalo) UPDATE_ZALO=1; shift ;;
+      --repair-desktop) REPAIR_DESKTOP=1; shift ;;
+      --zalo-variant) ZALO_VARIANT="${2:?Missing Zalo variant}"; shift 2 ;;
       --report) REPORT_PATH="${2:?Missing report path}"; shift 2 ;;
       -h|--help) usage; return 0 ;;
       *) usage >&2; return 2 ;;
     esac
   done
   case "$PROFILE" in minimal|office|full) ;; *) fail "Profile không hợp lệ: $PROFILE"; return 2 ;; esac
+  case "$ZALO_VARIANT" in chat|full) ;; *) fail "Zalo variant không hợp lệ: $ZALO_VARIANT"; return 2 ;; esac
+  if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; fi
   if [[ "$PROFILE" == minimal && -n "$CANON_UFRII_ARCHIVE" ]]; then
     fail 'Canon UFR II cần profile office hoặc full'
     return 2
   fi
   require_platform || { write_report; return 1; }
-  if (( FIX_UNIKEY || FIX_FLAMESHOT )); then
-    if (( FIX_UNIKEY )); then module_vietnamese_input || true; fi
-    if (( FIX_FLAMESHOT )); then module_flameshot || true; fi
+  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO )); then
+    backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
+    if (( FIX_UNIKEY )); then module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
+    if (( FIX_FLAMESHOT )); then module_flameshot || fail 'Sửa Flameshot thất bại'; fi
+    if (( FIX_ZALO || UPDATE_ZALO )); then module_zalo || fail 'Sửa/cập nhật Zalo thất bại'; fi
+    if ((${#FAILURES[@]})); then restore_desktop_settings; fi
     write_report
     ((${#FAILURES[@]} == 0))
     return
@@ -798,6 +891,7 @@ main() {
     [[ "$answer" =~ ^[Yy]$ ]] || { log 'Cancelled by user'; write_report; return 0; }
   fi
   repair_package_state || true
+  backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
   module_base
   if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
     module_office

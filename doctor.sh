@@ -82,6 +82,17 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
       fi
       status 'Flameshot Wayland' INFO 'the desktop may prompt for screenshot permission'
     fi
+    desktop="${XDG_CURRENT_DESKTOP:-}"
+    if [[ "${desktop,,}" == *gnome* ]] && has_command gsettings; then
+      shortcut_path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
+      shortcut_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$shortcut_path"
+      if [[ "$(gsettings get "$shortcut_schema" binding 2>/dev/null)" == "'<Primary><Shift>s'" ]] && \
+        [[ "$(gsettings get "$shortcut_schema" command 2>/dev/null)" == *ulok-flameshot* ]]; then
+        status 'Ctrl+Shift+S' PASS 'Flameshot custom shortcut configured'
+      else
+        status 'Ctrl+Shift+S' WARN 'run ./setup.sh --fix-flameshot'
+      fi
+    fi
     if has_command pgrep && pgrep -u "$(id -u)" -x flameshot >/dev/null 2>&1; then
       status 'Flameshot process' PASS 'running'
     else
@@ -93,7 +104,11 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
     else status "$pkg" WARN 'not installed'; fi
   done
   if [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]]; then
-    status 'Zalo Linux' PASS 'launcher exists'
+    if [[ -x "${XDG_DATA_HOME:-$HOME/.local/share}/zalo-linux/Zalo-x86_64.AppImage" ]]; then
+      status 'Zalo Linux' PASS 'launcher and AppImage exist; open GUI to test'
+    else
+      status 'Zalo Linux' WARN 'launcher exists but AppImage is missing; run --fix-zalo'
+    fi
   else
     status 'Zalo Linux' OPTIONAL 'full profile / third-party app'
   fi
