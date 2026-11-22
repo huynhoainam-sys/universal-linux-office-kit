@@ -131,7 +131,16 @@ repair_package_state() {
 
 install_apt() {
   local -a packages=("$@")
-  apt_run install -y --no-install-recommends "${packages[@]}" || { fail "Không cài được: ${packages[*]}"; return 1; }
+  local -a missing=()
+  local package
+  for package in "${packages[@]}"; do
+    package_installed "$package" || missing+=("$package")
+  done
+  if ((${#missing[@]} == 0)); then
+    log "APT: tất cả gói đã có, bỏ qua (${packages[*]})"
+    return 0
+  fi
+  apt_run install -y --no-install-recommends "${missing[@]}" || { fail "Không cài được: ${missing[*]}"; return 1; }
 }
 
 package_installed() {
@@ -321,14 +330,10 @@ module_vietnamese_input() {
   # Choose for the CURRENT desktop, even if the other input framework was installed
   # by an older run. A stray Fcitx package must not override GNOME's IBus.
   if desktop_is_cinnamon || { [[ "${ID:-}" == linuxmint ]] && ! desktop_is_gnome; }; then
-    if (( DRY_RUN )) || ! package_installed fcitx5-unikey; then
-      install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || return 1
-    fi
+    install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || return 1
     configure_fcitx5_unikey
   else
-    if (( DRY_RUN )) || ! package_installed ibus-unikey; then
-      install_apt ibus ibus-unikey im-config || return 1
-    fi
+    install_apt ibus ibus-unikey ibus-gtk3 ibus-gtk4 im-config || return 1
     configure_ibus_unikey
   fi
 }
@@ -735,57 +740,44 @@ module_zalo() {
   local launcher="${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux"
   local marker="$app_dir/.ulok-full-installed"
   local appimage="$app_dir/Zalo-x86_64.AppImage"
-  if (( ! DRY_RUN && ! FIX_ZALO && ! UPDATE_ZALO )) && [[ -f "$marker" && -x "$launcher" && -x "$appimage" ]] && [[ "$(<"$marker")" == "$ZALO_VARIANT" ]]; then
-    log 'Zalo Linux already installed by this kit; skipping duplicate installer (use --update-zalo to update)'
-    return 0
+  local desktop_entry="${XDG_DATA_HOME:-$HOME/.local/share}/applications/zalo-linux.desktop"
+  if (( ! DRY_RUN && ! UPDATE_ZALO )) && [[ -f "$marker" && -x "$launcher" && -x "$appimage" && -f "$desktop_entry" ]] && [[ "$(<"$marker")" == "$ZALO_VARIANT" ]]; then
+    if cmp -s -- "$ROOT_DIR/vendor/zalo/zalo-launcher.sh" "$launcher" && \
+      command -v xclip >/dev/null 2>&1 && command -v wl-paste >/dev/null 2>&1 && \
+      package_installed libopus0 && package_installed pulseaudio-utils; then
+      log 'Zalo AppImage, launcher và thư viện đã có; bỏ qua (dùng --update-zalo để cập nhật)'
+      return 0
+    fi
   fi
-  local repo_url='https://github.com/huynhoainam-sys/zalo-linux-chat-kit.git'
-  local workdir installer local_clone local_origin
+  # Bundled installer: there is no second Git clone or remote script download.
+  local installer="$ROOT_DIR/vendor/zalo/install-zalo-linux.sh"
   if (( DRY_RUN )); then
-    log "+ git clone --depth 1 $repo_url; verify bash syntax; ZALO_VARIANT=$ZALO_VARIANT bash install-zalo-linux.sh"
+    log "+ ZALO_VARIANT=$ZALO_VARIANT bash $installer (bundled)"
     return 0
-  fi
-  command -v git >/dev/null 2>&1 || { fail 'Thiếu Git; không thể tải Zalo installer'; return 1; }
-  workdir="$(mktemp -d)" || { fail 'Không tạo được thư mục tạm Zalo'; return 1; }
-  installer="$workdir/zalo-linux-chat-kit/install-zalo-linux.sh"
-  if ! GIT_TERMINAL_PROMPT=0 git clone --quiet --depth 1 --branch main "$repo_url" "$workdir/zalo-linux-chat-kit"; then
-    # Use an existing clone ONLY when its Git origin is the expected public repository.
-    local_clone="$HOME/zalo-linux-chat-kit"
-    local_origin="$(git -C "$local_clone" remote get-url origin 2>/dev/null || true)"
-    case "$local_origin" in
-      'https://github.com/huynhoainam-sys/zalo-linux-chat-kit.git'|'https://github.com/huynhoainam-sys/zalo-linux-chat-kit')
-        if [[ -f "$local_clone/install-zalo-linux.sh" ]]; then
-          installer="$local_clone/install-zalo-linux.sh"
-          warn 'Git clone mới bị chặn; dùng installer từ bản Git clone cục bộ (có thể chưa mới nhất)'
-        fi
-        ;;
-    esac
   fi
   if [[ ! -s "$installer" ]]; then
-    rm -rf -- "$workdir"
-    fail 'Không tải được Zalo installer qua git clone và không có bản cục bộ hợp lệ; kiểm tra github.com'
+    fail 'Thiếu installer Zalo tích hợp trong Office Kit; cập nhật repository'
     return 1
   fi
   if ! bash -n "$installer"; then
-    rm -rf -- "$workdir"
     fail 'Zalo installer có lỗi cú pháp Bash; không thực thi'
     return 1
   fi
   # Installer manages user data under HOME; do not run with sudo.
-  if (( FIX_ZALO )) && [[ -x "$appimage" ]]; then
-    installer="$(dirname "$installer")/zalo-repair.sh"
+  local should_repair=0
+  if [[ -x "$appimage" ]] && (( FIX_ZALO )); then should_repair=1; fi
+  if [[ -x "$appimage" && -f "$marker" ]] && (( ! UPDATE_ZALO )) && [[ "$(<"$marker")" == "$ZALO_VARIANT" ]]; then should_repair=1; fi
+  if (( should_repair )); then
+    installer="$ROOT_DIR/vendor/zalo/zalo-repair.sh"
     if [[ ! -f "$installer" ]] || ! bash -n "$installer"; then
-      rm -rf -- "$workdir"
       fail 'Zalo repair script không hợp lệ'
       return 1
     fi
   fi
   if ! ZALO_VARIANT="$ZALO_VARIANT" bash "$installer"; then
-    rm -rf -- "$workdir"
-    fail 'Cài Zalo Linux thất bại; xem thông báo GitHub API/Releases ở phía trên'
+    fail 'Cài Zalo Linux thất bại; xem thông báo GitHub API/mirror ở phía trên'
     return 1
   fi
-  rm -rf -- "$workdir"
   if [[ ! -x "$launcher" || ! -x "$appimage" ]]; then
     fail 'Zalo installer kết thúc nhưng không có launcher; không ghi nhận đã cài thành công'
     return 1

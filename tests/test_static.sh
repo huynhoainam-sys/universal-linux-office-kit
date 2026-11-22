@@ -20,11 +20,15 @@ grep -q 'api.github.com/repos/genspark-ai/genoffice/releases/latest' "$ROOT/setu
 grep -q 'fallback_sha256=' "$ROOT/setup.sh" || fail 'GenOffice SHA-256 fallback missing'
 grep -q 'target="${TMPDIR:-/tmp}/${name}.deb"' "$ROOT/setup.sh" || fail 'Deb target has nounset ordering bug'
 if grep -q 'raw.githubusercontent.com' "$ROOT/setup.sh"; then fail 'Raw GitHub dependency remains'; fi
-grep -q 'zalo-linux-chat-kit.git' "$ROOT/setup.sh" || fail 'Zalo Git source missing'
+grep -q 'vendor/zalo/install-zalo-linux.sh' "$ROOT/setup.sh" || fail 'Bundled Zalo installer missing'
 grep -q 'ZALO_VARIANT=' "$ROOT/setup.sh" || fail 'Zalo variant selector missing'
 grep -q -- '--repair-desktop' "$ROOT/setup.sh" || fail 'One-shot desktop repair missing'
 grep -q -- '--fix-zalo' "$ROOT/setup.sh" || fail 'Zalo repair missing'
-grep -q 'git clone --quiet --depth 1' "$ROOT/setup.sh" || fail 'Zalo Git clone missing'
+if grep -q 'git clone --quiet --depth 1' "$ROOT/setup.sh"; then fail 'Second Zalo clone still required'; fi
+for helper in install-zalo-linux.sh zalo-download.sh zalo-launcher.sh zalo-repair.sh backup-zalo-linux.sh zalo-doctor.sh; do
+  [[ -s "$ROOT/vendor/zalo/$helper" ]] || fail "Missing Zalo helper: $helper"
+  bash -n "$ROOT/vendor/zalo/$helper" || fail "Broken Zalo helper syntax: $helper"
+done
 grep -q '\.ulok-full-installed' "$ROOT/setup.sh" || fail 'Zalo dedup marker missing'
 grep -q 'install_apt flameshot' "$ROOT/setup.sh" || fail 'Flameshot installer missing'
 grep -q '<Primary><Shift>s' "$ROOT/setup.sh" || fail 'Flameshot shortcut missing'
@@ -42,4 +46,6 @@ bash "$ROOT/tests/test_input_method.sh"
 bash "$ROOT/tests/test_flameshot.sh"
 bash "$ROOT/tests/test_genoffice.sh"
 bash "$ROOT/tests/test_repair_flow.sh"
+bash "$ROOT/tests/test_apt_skip.sh"
+bash "$ROOT/tests/test_zalo_bundle.sh"
 echo 'PASS: static checks'

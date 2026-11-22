@@ -9,14 +9,14 @@ Một bộ bootstrap **1 click** cho Ubuntu và Linux Mint mới cài. Mục ti�
 Sao chép nguyên khối lệnh sau vào Terminal **trong tài khoản desktop**, không chạy cả khối bằng `sudo`. Lệnh dùng `git clone` hoặc cập nhật bản clone hiện có, sau đó chỉ sửa ba ứng dụng, không chạy profile `full` và không bật/tắt VPN hay proxy:
 
 ```bash
-sudo apt-get update && sudo apt-get install -y git && bash -c 'set -Eeuo pipefail; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --repair-desktop --yes; bash "$repo/doctor.sh"'
+command -v git >/dev/null || { sudo apt-get update && sudo apt-get install -y git; }; bash -c 'set -Eeuo pipefail; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --repair-desktop --yes; bash "$repo/doctor.sh"'
 ```
 
 - GNOME: dùng **IBus Unikey**, thêm và chọn nguồn nhập; đăng xuất/đăng nhập sau khi sửa để tránh tiến trình Fcitx5 cũ. Không tự xóa cấu hình bộ gõ cũ.
 - Flameshot: cài từ APT, chạy GUI qua native Wayland/portal, tự tạo phím tắt **Ctrl+Shift+S** và autostart. Lần chụp đầu có thể phải cho phép quyền chụp màn hình trong GNOME. Do giới hạn upstream, cần bấm thử thật để xác nhận GUI.
 - Zalo: mặc định bản `chat` AppImage mới nhất trên x86_64, dùng launcher tối ưu IBus/XWayland trên GNOME Wayland; có `ZALO_OZONE_PLATFORM=auto` để thử Electron native Wayland. Repair giữ dữ liệu và không tải lại nếu AppImage còn dùng được.
 - Cấu hình desktop trước khi sửa được sao lưu vào `~/.local/state/ulok/backups/`; nếu bước sửa trả lỗi, script thử khôi phục cấu hình đã lưu. Zalo giữ bản AppImage trước (`*.previous`) khi cập nhật, có sao lưu chat có điều kiện theo dung lượng còn trống.
-- Nếu proxy FPT chặn `git clone` nhưng đã clone trước đó, lệnh sẽ thử sử dụng bản cục bộ. Nếu proxy chặn **GitHub Releases** khi chưa có AppImage, không thể cài mới Zalo chỉ bằng script; cần proxy/allowlist được IT cho phép hoặc tệp cài đã xác minh. Không tự bỏ qua proxy của đơn vị.
+- Nếu proxy FPT chặn `git clone` nhưng đã clone Office Kit trước đó, lệnh sẽ dùng bản Office Kit cục bộ. Office Kit **đã kèm installer Zalo**; không cần tải repo Zalo riêng. Khi GitHub Releases bị chặn, bộ cài thử hai mirror cộng đồng với kiểm tra SHA-256 theo upstream; checksum sai sẽ bị loại. Có thể dùng `ZALO_MIRROR_URL` hoặc `ZALO_OFFLINE_APPIMAGE` để chỉ định nguồn được IT cho phép.
 
 **Cập nhật Zalo riêng** (không cài toàn bộ Office Kit):
 
@@ -24,7 +24,7 @@ sudo apt-get update && sudo apt-get install -y git && bash -c 'set -Eeuo pipefai
 bash "$HOME/universal-linux-office-kit/setup.sh" --update-zalo --yes
 ```
 
-**Chẩn đoán:** `bash "$HOME/universal-linux-office-kit/doctor.sh"` và `bash "$HOME/zalo-linux-chat-kit/zalo-doctor.sh"` (nếu có clone Zalo riêng).
+**Chẩn đoán:** `bash "$HOME/universal-linux-office-kit/doctor.sh"` và `bash "$HOME/universal-linux-office-kit/vendor/zalo/zalo-doctor.sh"`.
 
 ---
 
@@ -110,9 +110,9 @@ Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`
 | Python, pip, venv, build-essential | Lập trình, automation và biên dịch package | Kho Ubuntu/Mint |
 | Inxi, GParted, GNOME Disks, Nmap, ethtool, iperf3, smartmontools | Chẩn đoán máy và mạng | Kho Ubuntu/Mint |
 | Flatpak + Flathub | Cài thêm ứng dụng desktop sandbox | Flatpak/Flathub |
-| Zalo Linux (chat, `full` tùy chọn) | Nhắn tin qua AppImage cộng đồng, tạo launcher và icon trong tài khoản đang chạy | Installer của `huynhoainam-sys/zalo-linux-chat-kit`; AppImage từ `VN-Linux-Family/zalo-for-linux` |
+| Zalo Linux (chat, `full` tùy chọn) | Nhắn tin, gọi thoại/video (nếu hệ thống hỗ trợ) qua AppImage cộng đồng; tạo launcher/icon | Installer đã đóng gói trong Office Kit; AppImage từ `VN-Linux-Family/zalo-for-linux` hoặc mirror kiểm tra SHA-256 |
 
-Zalo installer được tải bằng `git clone` từ repository `huynhoainam-sys/zalo-linux-chat-kit` (không dùng Raw GitHub). Nếu Git clone không truy cập được, kit chỉ dùng lại bản clone cục bộ có origin phù hợp. Bộ cài Zalo tự có fallback bản upstream xác minh SHA-256 khi GitHub API lỗi 403; nếu GitHub Releases cũng bị chặn thì ghi FAIL, không xóa dữ liệu chat.
+Zalo installer nằm sẵn tại `vendor/zalo/` (đồng bộ từ repository `huynhoainam-sys/zalo-linux-chat-kit`), không cần clone repo thứ hai. Các thư viện (`curl`, `ca-certificates`, `libfuse2`, `libopus0`, `pulseaudio-utils`, clipboard...) chỉ được cài nếu thiếu. Khi GitHub bị chặn, bộ cài thử release ghim SHA-256 và mirror đã kiểm tra nội dung; nếu tất cả nguồn đều lỗi, giữ bản Zalo cũ và không xóa dữ liệu chat.
 
 ### Các app chưa tự cài
 
@@ -190,7 +190,7 @@ APT tự giữ các gói đã cài. GenOffice, Chrome, WPS và Zoom bỏ qua t�
 
 ## Giới hạn có chủ ý
 
-Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định. Zalo Linux trong profile `full` là bản AppImage cộng đồng, không phải ứng dụng Linux chính thức của Zalo. Có thể bỏ qua cùng các app bên thứ ba bằng `--skip-third-party`. Installer Zalo tải mã từ nhánh `main` qua Git clone lúc chạy, nên nội dung có thể thay đổi; kiểm tra mã nguồn trước khi triển khai hàng loạt. Fallback GenOffice và Zalo được ghim phiên bản đã kiểm tra checksum, không tự động vượt qua firewall/proxy nếu chặn cả GitHub Releases.
+Microsoft Office desktop không có bản Linux native được Microsoft hỗ trợ. Kit cài LibreOffice mặc định. Zalo Linux trong profile `full` là bản AppImage cộng đồng, không phải ứng dụng Linux chính thức của Zalo. Có thể bỏ qua cùng các app bên thứ ba bằng `--skip-third-party`. Installer Zalo đi kèm bản Office Kit hiện tại, không tải mã script mới vào lúc chạy; chỉ tải AppImage từ upstream/mirror và kiểm tra SHA-256 khi upstream có digest. Các nguồn bị proxy doanh nghiệp chặn vẫn cần được IT cho phép.
 
 File checksum được tham khảo trong thiết kế: `universal-linux-office-kit-v7.3-pro-max-report-printer-optional.sha256` ghi hash `9c7ebdf1af1131eacbf9bd764016e52ce1f4d2c9891bd02274fe7ff185204a28` cho ZIP trỏ tới `/mnt/data/...`. ZIP không có trong máy hiện tại nên chưa thể xác minh hash thực tế.
 
