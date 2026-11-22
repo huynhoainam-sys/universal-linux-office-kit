@@ -7,7 +7,8 @@
 - Tên hiển thị: **NAMHH / UNIVERSAL LINUX OFFICE KIT**.
 - Người thiết kế và liên hệ: **NAMHH · huynhoainam@gmail.com**. Trong HTML, email phải là liên kết `mailto:`.
 - Không thêm tên công ty, sản phẩm hoặc logo bên thứ ba như một đối tác nếu chưa có quyền sử dụng.
-- Chỉ dùng một sắc nhấn xanh-teal, trạng thái xanh lá, cảnh báo vàng dịu và lỗi đỏ; không dùng gradient neon hoặc hiệu ứng nhấp nháy.
+- Lấy cảm hứng từ giao diện AI dashboard người dùng chọn: nền navy sâu, đường lưới mờ, thẻ trạng thái xanh cyan và một điểm nhấn tím. Không sao chép logo, hình ảnh, số liệu hay tên thương hiệu NA AI vào bộ cài.
+- Cyan và xanh lam cho thao tác/chỉ số thực, tím cho nhận diện/phân tách, xanh lá cho trạng thái thành công, vàng cho cảnh báo, đỏ cho lỗi. Viền phát sáng chỉ là lớp nhấn rất mỏng, không nhấp nháy hoặc dùng nền gradient cầu vồng.
 - Terminal có banner NAMHH, mã bước `[01/12 · 8%]`, phản hồi theo bước và tổng kết. Không in lệnh APT dài; nội dung kỹ thuật được lưu trong `setup.log` và xem qua `--verbose`.
 - `dry-run` chỉ hiện **ĐÃ MÔ PHỎNG**, không in hoàn tất cài đặt thật.
 
@@ -15,15 +16,18 @@
 
 | Chức năng | Màu | Quy tắc |
 |---|---|---|
-| Terminal nền đen | `#05070b` | Chữ dễ đọc, màu sắc tiết chế |
-| HTML header / nền công nghệ | `#0a1a2b → #205069` | Lưới 40px rất mờ, CSS thuần |
-| Nền HTML | `#f4f7f9` | Nội dung trên thẻ trắng |
-| Text chính | `#192d41` | Độ tương phản cao |
-| Accent / link | `#245b80` | Dùng cho liên kết, nhãn bước, tiêu đề |
-| PASS | `#216a4f` | Chỉ khi thật sự xác minh đã có / đã hoàn tất |
-| Cảnh báo | `#815b24` | Diễn giải cách xử lý, không gây hoang mang |
+| Terminal & HTML nền navy | `#061021` | Đồng nhất giữa màn hình lệnh và báo cáo, không thuần đen |
+| HTML hero / nền công nghệ | `#061124 → #152b53` | Lưới CSS 44px rất mờ, không ảnh nền |
+| Thẻ nội dung | `#0c1b32` | Viền `#284467`, ánh sáng viền mức thấp |
+| Text chính | `#eaf3ff` | Trắng xanh dễ đọc, tiếng Việt Unicode |
+| Text phụ | `#a6bed7` | Nội dung hướng dẫn vẫn nổi trên nền tối |
+| Accent / link | `#50d9f0` | Tiêu đề mục, điều hướng và liên kết |
+| Accent phụ | `#bd9cfc` | Chỉ dùng tiết chế ở brand và thẻ Office |
+| PASS | `#7ce6ba` | Chỉ khi xác minh đã có / đã hoàn tất |
+| Cảnh báo | `#f0c67c` | Diễn giải cách xử lý, không gây hoang mang |
 
-- 8px spacing cơ sở, bo góc 9–16px, viền mảnh, shadow nhẹ.
+- 8px spacing cơ sở, bo góc 9–16px, viền mảnh, shadow nhẹ; card đầu trang sáng hơn vừa đủ để nhận diện trạng thái.
+- Không sử dụng biểu đồ, chỉ số agents, thông số kết nối hay nút giả từ ảnh tham khảo: các số trong HTML phải lấy từ kết quả kiểm tra ứng dụng thực tế.
 - Phân cấp: tiêu đề lớn → trạng thái hệ thống → ba việc cần làm → hướng dẫn thao tác → danh sách ứng dụng → kỹ thuật.
 - Mobile: các thẻ chuyển một cột, mục bấm có kích thước tối thiểu 44px.
 
@@ -51,7 +55,7 @@
 
 ## 5. Tốc độ và offline
 
-- `setup-report.html` là **một file tự chứa**: HTML + CSS + SVG, không JS, CDN, web font, tracker hay yêu cầu Internet.
+- `setup-report.html` là **một file tự chứa**: HTML + CSS + SVG, không JS, CDN, web font, tracker hay yêu cầu Internet. CSS gradient/lưới tĩnh, không canvas, animation hay tải ảnh.
 - Ưu tiên trình duyệt mặc định của Ubuntu qua `xdg-open`; Firefox là phương án dự phòng nếu `xdg-open` lỗi hoặc thiếu.
 - Báo cáo mở tự động trên phiên đồ họa sau khi cài thật, không tự mở khi `--dry-run` hoặc dùng `--no-open-report`.
 - Không auto-logout hoặc reboot: chỉ hướng dẫn để người dùng chủ động lưu công việc.

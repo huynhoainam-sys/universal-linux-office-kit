@@ -34,13 +34,15 @@ UI_TOTAL=0
 UI_STAGE_WARNINGS=0
 UI_STAGE_FAILURES=0
 UI_RESET=$'\033[0m'
-# Restrained slate palette, readable on GNOME Terminal dark and light themes.
-UI_CYAN=$'\033[38;5;110m'
-UI_BLUE=$'\033[38;5;109m'
-UI_GREEN=$'\033[38;5;108m'
+# NAMHH dark-tech palette: navy terminal, soft cyan/blue and one violet accent.
+# Colors disappear for pipes, redirected logs, NO_COLOR, and TERM=dumb.
+UI_CYAN=$'\033[38;5;80m'
+UI_BLUE=$'\033[38;5;111m'
+UI_PURPLE=$'\033[38;5;183m'
+UI_GREEN=$'\033[38;5;121m'
 UI_YELLOW=$'\033[38;5;179m'
-UI_RED=$'\033[38;5;167m'
-UI_MUTED=$'\033[38;5;245m'
+UI_RED=$'\033[38;5;174m'
+UI_MUTED=$'\033[38;5;110m'
 
 ui_init() {
   UI_COLOR=0 UI_VISIBLE=0 UI_STAGE=0
@@ -57,11 +59,11 @@ ui_paint() {
 
 ui_banner() {
   (( UI_VISIBLE )) || return 0
-  ui_paint "$UI_MUTED" '  ──────────────────────────────────────────────────────────'
-  ui_paint "$UI_CYAN"  '    N A M H H   /   D E S K T O P   K I T'
-  ui_paint "$UI_MUTED" '    UNIVERSAL LINUX OFFICE KIT  ·  UBUNTU READY'
-  ui_paint "$UI_MUTED" '    Thiết kế: NAMHH  /  huynhoainam@gmail.com'
-  ui_paint "$UI_MUTED" '  ──────────────────────────────────────────────────────────'
+  ui_paint "$UI_PURPLE" '  ╭── NAMHH ───────────────────────────────────────────────────╮'
+  ui_paint "$UI_CYAN"   '  │  N A M H H   /   D E S K T O P   K I T                   │'
+  ui_paint "$UI_BLUE"   '  │  UNIVERSAL LINUX OFFICE KIT  ·  UBUNTU WORKSPACE         │'
+  ui_paint "$UI_MUTED"  '  │  Design NAMHH  ·  huynhoainam@gmail.com                 │'
+  ui_paint "$UI_PURPLE" '  ╰──────────────────────────────────────────────────────────╯'
   printf '\n'
 }
 
@@ -82,7 +84,11 @@ ui_stage() {
   (( UI_VISIBLE && UI_TOTAL > 0 )) || return 0
   local indicator percent=$((UI_STAGE * 100 / UI_TOTAL))
   printf -v indicator '  [%02d/%02d · %3d%%]  %s' "$UI_STAGE" "$UI_TOTAL" "$percent" "$*"
-  ui_paint "$UI_BLUE" "$indicator"
+  if (( UI_STAGE % 3 == 0 )); then
+    ui_paint "$UI_CYAN" "$indicator"
+  else
+    ui_paint "$UI_BLUE" "$indicator"
+  fi
   # Optional pause for GitHub Actions' terminal screenshot only; unset in normal installs.
   if [[ -n "${UI_STAGE_DELAY:-}" ]]; then sleep "$UI_STAGE_DELAY"; fi
 }

@@ -13,10 +13,10 @@ cleanup() {
 }
 trap cleanup EXIT
 sleep 2
-if command -v xsetroot >/dev/null 2>&1; then xsetroot -display :98 -solid '#05070b' || true; fi
+if command -v xsetroot >/dev/null 2>&1; then xsetroot -display :98 -solid '#061021' || true; fi
 
 xterm -display :98 -fa 'DejaVu Sans Mono' -fs 16 -geometry 102x27+25+22 \
-  -bg '#05070b' -fg '#e0e8ee' -cr '#8ba8bb' -T 'NAMHH · Ubuntu 24.04 · dry-run' \
+  -bg '#061021' -fg '#eaf3ff' -cr '#50d9f0' -T 'NAMHH · Ubuntu 24.04 · dry-run' \
   -e bash -c 'printf "  Ubuntu 24.04 LTS / GitHub Actions / dry-run\n\n"; UI_STAGE_DELAY=1 FORCE_COLOR=1 TERM=xterm-256color bash setup.sh --profile desktop --dry-run --yes --no-open-report --report "$PWD/ubuntu-captures/report.txt"; printf "\n  [CI] 12/12 bước đã chạy thử. Không cài package thật.\n"; sleep 18' &
 term_pid=$!
 

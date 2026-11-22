@@ -14,7 +14,7 @@ Script tự kiểm tra và bỏ qua phần đã có. Không cần tải Zalo ri�
 
 Terminal hiển thị nhận diện **NAMHH · huynhoainam@gmail.com**, từng bước có số thứ tự, % và trạng thái **Hoàn tất / Lưu ý / Cần kiểm tra**. Các dòng kỹ thuật APT/installer được ghi vào `setup.log`, chỉ hiện trong Terminal khi chọn `--verbose`. Cuối lượt tự mở báo cáo HTML có minh họa **Quick Settings → Power → Log Out… / Restart…** của Ubuntu GNOME.
 
-Giao diện theo phong cách công nghệ **NAMHH / AI thực chiến** nhưng nhẹ: HTML tự chứa, icon SVG chuẩn, không CDN/JavaScript. Dùng Firefox hoặc trình duyệt mặc định Ubuntu. [Xem quy tắc thiết kế và thuật ngữ](docs/DESIGN-RULES.md).
+Giao diện đồng bộ **NAMHH / AI Control Center**: Terminal nền navy đậm, chữ xanh lam/cyan và nhấn tím dịu; báo cáo HTML như một dashboard công nghệ với thẻ trạng thái, viền sáng nhẹ và icon SVG chuẩn. Hoàn toàn **offline**, không tải font/ảnh, CDN hoặc JavaScript; mở nhanh với Firefox hay trình duyệt mặc định Ubuntu. Mọi số liệu báo cáo lấy từ kiểm tra máy, không phải thông số trang trí. [Xem quy tắc thiết kế và thuật ngữ](docs/DESIGN-RULES.md).
 
 | Tự chuẩn bị | Dùng để làm gì? |
 |---|---|

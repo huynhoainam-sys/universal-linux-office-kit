@@ -17,6 +17,9 @@ output="$(ui_banner; ui_stage 'Kiểm tra Ubuntu'; log 'PASS: Kiểm tra hoàn t
 [[ "$output" == *'HOÀN TẤT'* ]]
 [[ "$output" != *'█'* ]] || { echo 'FAIL: visual progress bar is too busy' >&2; exit 1; }
 [[ "$output" == *$'\033['* ]] || { echo 'FAIL: ANSI colors missing with FORCE_COLOR' >&2; exit 1; }
+[[ "$output" == *$'\033[38;5;183m'* && "$output" == *$'\033[38;5;80m'* ]] || {
+  echo 'FAIL: NAMHH violet / cyan terminal palette missing' >&2; exit 1;
+}
 [[ -s "$LOG_PATH" ]]
 if LC_ALL=C grep -q $'\033' "$LOG_PATH"; then
   echo 'FAIL: ANSI escape sequence leaked into persistent log' >&2

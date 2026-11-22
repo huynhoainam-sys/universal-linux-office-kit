@@ -23,7 +23,7 @@ if grep -q 'raw.githubusercontent.com' "$ROOT/setup.sh"; then fail 'Raw GitHub d
 grep -q 'vendor/zalo/install-zalo-linux.sh' "$ROOT/setup.sh" || fail 'Bundled Zalo installer missing'
 grep -q 'ZALO_VARIANT=' "$ROOT/setup.sh" || fail 'Zalo variant selector missing'
 grep -q -- '--repair-desktop' "$ROOT/setup.sh" || fail 'One-shot desktop repair missing'
-grep -q -- '-bg.*#05070b' "$ROOT/.github/scripts/capture-ubuntu.sh" || fail 'Ubuntu terminal capture must use the approved black background'
+grep -q -- '-bg.*#061021' "$ROOT/.github/scripts/capture-ubuntu.sh" || fail 'Ubuntu terminal capture must use the NAMHH navy background'
 grep -q -- '--fix-zalo' "$ROOT/setup.sh" || fail 'Zalo repair missing'
 grep -q -- '--fix-zalo-login' "$ROOT/setup.sh" || fail 'Zalo QR login recovery missing'
 if grep -q 'git clone --quiet --depth 1' "$ROOT/setup.sh"; then fail 'Second Zalo clone still required'; fi
