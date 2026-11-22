@@ -7,12 +7,12 @@ Bộ cài đơn giản cho người **chuyển từ Windows sang Ubuntu / Linux 
 Mở **Terminal** bằng `Ctrl + Alt + T`, dán nguyên dòng sau và nhấn **Enter**. Nếu Ubuntu hỏi mật khẩu, nhập mật khẩu đăng nhập máy (khi gõ sẽ không hiện dấu `*`, đây là bình thường).
 
 ```bash
-bash -c 'set -Eeuo pipefail; command -v git >/dev/null || { sudo apt-get update && sudo apt-get install -y git; }; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --repair-desktop --yes'
+bash -c 'set -Eeuo pipefail; command -v git >/dev/null || { sudo apt-get update && sudo apt-get install -y git; }; repo="$HOME/universal-linux-office-kit"; if [[ -d "$repo/.git" ]]; then git -C "$repo" pull --ff-only || echo "[WARN] GitHub bị chặn; dùng bản repo đã có"; else git clone --depth 1 https://github.com/huynhoainam-sys/universal-linux-office-kit.git "$repo"; fi; bash -n "$repo/setup.sh"; bash "$repo/setup.sh" --profile desktop --yes'
 ```
 
 Script tự kiểm tra và bỏ qua phần đã có. Không cần tải Zalo riêng hay thêm phần mềm để hiện giao diện Terminal.
 
-Terminal hiển thị nhận diện **NAMHH · huynhoainam@gmail.com**, màu chuyên nghiệp trên nền đen; cuối lượt tự mở báo cáo HTML có mục hướng dẫn song ngữ và minh họa các menu **Quick Settings → Power → Log Out… / Restart…** của Ubuntu GNOME.
+Terminal hiển thị nhận diện **NAMHH · huynhoainam@gmail.com**, từng bước có số thứ tự, % và trạng thái **Hoàn tất / Lưu ý / Cần kiểm tra**. Các dòng kỹ thuật APT/installer được ghi vào `setup.log`, chỉ hiện trong Terminal khi chọn `--verbose`. Cuối lượt tự mở báo cáo HTML có minh họa **Quick Settings → Power → Log Out… / Restart…** của Ubuntu GNOME.
 
 Giao diện theo phong cách công nghệ **NAMHH / AI thực chiến** nhưng nhẹ: HTML tự chứa, icon SVG chuẩn, không CDN/JavaScript. Dùng Firefox hoặc trình duyệt mặc định Ubuntu. [Xem quy tắc thiết kế và thuật ngữ](docs/DESIGN-RULES.md).
 
@@ -22,7 +22,10 @@ Giao diện theo phong cách công nghệ **NAMHH / AI thực chiến** nhưng n
 | **Unikey** (IBus trên Ubuntu GNOME) | Gõ tiếng Việt Telex hoặc VNI |
 | **Flameshot — Ctrl + Alt + S** | Chụp một vùng màn hình |
 | **Zalo Linux** | Chat bằng ứng dụng desktop; giữ dữ liệu cũ và hỗ trợ nguồn tải thay thế có kiểm tra SHA-256 |
+| **Bộ tiện ích dùng hằng ngày** | Giải nén, xem trước tệp, sao lưu tài liệu, mở ổ NTFS/exFAT, chia sẻ Windows/NAS, xem dung lượng ổ đĩa, Remote Desktop |
 | **Báo cáo HTML** | Tự mở trên trình duyệt; giải thích từng ứng dụng bằng tiếng Việt, có hình minh họa |
+
+Các tiện ích này dùng gói Ubuntu chính thức, **đã cài thì bỏ qua**. Không tự bật Remote Desktop, không thay đổi firewall/VPN, không tự chọn ổ backup hay xóa phần mềm có sẵn. Các gói đồ họa nặng, Docker, môi trường lập trình và nhiều trình duyệt chỉ nằm trong `--profile full`.
 
 ## Khi cài xong, làm 3 việc
 
@@ -32,9 +35,13 @@ Giao diện theo phong cách công nghệ **NAMHH / AI thực chiến** nhưng n
 
 Trình duyệt sẽ **tự mở `setup-report.html`** sau khi cài. Trong đó có hướng dẫn minh họa từng bước đăng xuất/khởi động lại, cách gõ VNI, danh sách ứng dụng thực tế và công dụng. Có thể mở lại bằng cách nhấp tệp `setup-report.html` trong thư mục `universal-linux-office-kit` ở **Home**.
 
+**UniKey tự phục hồi:** Trên Ubuntu GNOME, kit đặt kiểu gõ **VNI**, bảng mã **Unicode** bằng cấu hình chính thức của `ibus-unikey`. Mục Unikey đôi khi bị GNOME mất sau đăng nhập; tiện ích nhỏ `namhh-unikey-guard` kiểm tra một lần mỗi phiên, chỉ thêm lại mục bị thiếu, giữ nguyên các bộ gõ và phím tắt khác. Nếu đang mất UniKey, mở Terminal chạy `bash "$HOME/universal-linux-office-kit/setup.sh" --fix-unikey --yes`, rồi **Log Out** và vào lại. Không tự tắt IBus, không chạy hai framework cùng lúc.
+
 > **Lưu ý:** Nếu máy đã có 2–3 bộ Office khác nhau, kit không tự gỡ phần mềm/dữ liệu. Nếu mạng cơ quan chặn GitHub hoặc nguồn tải, bộ cài ghi cảnh báo; bạn có thể nhờ IT kiểm tra. Trên GNOME Wayland, Flameshot đôi khi cần cho phép quyền chụp màn hình lần đầu.
 
 **Xem ảnh thử trên Ubuntu 24.04:** vào [GitHub Actions — Ubuntu desktop kit checks](https://github.com/huynhoainam-sys/universal-linux-office-kit/actions/workflows/tests.yml), mở lượt chạy mới nhất → **Artifacts** → tải `namhh-ubuntu-24.04-preview`. Tệp ZIP có 3 ảnh Terminal tiến trình và ảnh báo cáo HTML. Đây là bản chạy **dry-run trên Ubuntu thật**, không phải bằng chứng WPS/Zalo đã đăng nhập trên máy người dùng.
+
+**QA:** bài test tự động chạy trên Ubuntu 22.04/24.04, mô phỏng lỗi proxy APT, thiếu ứng dụng phụ, lỗi một thành phần thiết yếu, Unikey bị mất sau đăng nhập, cấu hình VNI/Unicode, Flameshot GNOME Wayland và Zalo AppImage đã có. Lỗi phụ được ghi cảnh báo, ba ứng dụng chính vẫn tiếp tục được xử lý; thành phần thiết yếu thiếu sẽ ghi rõ là lỗi. Không thể bảo đảm Zalo đăng nhập thành công nếu kết nối/proxy doanh nghiệp chặn bước xác thực.
 
 ---
 
@@ -89,9 +96,10 @@ bash -n setup.sh && bash setup.sh --profile full --yes
 
 Các profile:
 
-- `minimal`: sửa APT/dpkg, cập nhật hệ thống, công cụ nén, mạng, font và in ấn.
-- `office`: minimal + WPS Office (ưu tiên) và tối đa một bộ Office khác (mặc định LibreOffice), PDF, scan, media, browser integration.
-- `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker, Zoom và Zalo Linux bản `chat` hiện hành. Muốn thử `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
+- `minimal`: sửa APT/dpkg, thư viện nền, công cụ mạng.
+- `office`: minimal + WPS Office (ưu tiên), tối đa một bộ Office khác (mặc định LibreOffice), PDF, scan, Flameshot và bộ gõ tiếng Việt.
+- `desktop` (**mặc định**): office + **Zalo** + các tiện ích cần cho người chuyển từ Windows; không tự cài Docker, Chrome, Edge hay bộ công cụ lập trình.
+- `full`: desktop + development, Flatpak, Chrome, Edge, VS Code, Docker, Zoom. Muốn thử Zalo bản `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
 Tùy chọn: `--repair-desktop` (bao gồm kiểm tra WPS/Office), `--fix-office` (chỉ kiểm tra/cài bộ Office), `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
 

@@ -17,7 +17,7 @@ if command -v xsetroot >/dev/null 2>&1; then xsetroot -display :98 -solid '#0507
 
 xterm -display :98 -fa 'DejaVu Sans Mono' -fs 16 -geometry 102x27+25+22 \
   -bg '#05070b' -fg '#e0e8ee' -cr '#8ba8bb' -T 'NAMHH · Ubuntu 24.04 · dry-run' \
-  -e bash -c 'printf "  Ubuntu 24.04 LTS / GitHub Actions / dry-run\n\n"; UI_STAGE_DELAY=2 FORCE_COLOR=1 TERM=xterm-256color bash setup.sh --repair-desktop --dry-run --yes --no-open-report --report "$PWD/ubuntu-captures/report.txt"; printf "\n  [CI] 6/6 bước đã chạy thử. Không cài package thật.\n"; sleep 18' &
+  -e bash -c 'printf "  Ubuntu 24.04 LTS / GitHub Actions / dry-run\n\n"; UI_STAGE_DELAY=1 FORCE_COLOR=1 TERM=xterm-256color bash setup.sh --profile desktop --dry-run --yes --no-open-report --report "$PWD/ubuntu-captures/report.txt"; printf "\n  [CI] 12/12 bước đã chạy thử. Không cài package thật.\n"; sleep 18' &
 term_pid=$!
 
 # Distinct points in a genuine terminal session, not manually drawn mockups.
@@ -38,7 +38,7 @@ if [[ -n "$chrome" ]]; then
     --screenshot="$PWD/ubuntu-captures/04-html-report.png" --window-size=1280,1050 \
     "file://$PWD/ubuntu-captures/report.html" >/dev/null 2>&1 || true
   "$chrome" --headless --no-sandbox --disable-gpu --hide-scrollbars \
-    --screenshot="$PWD/ubuntu-captures/05-html-report-full.png" --window-size=1280,5200 \
+    --screenshot="$PWD/ubuntu-captures/05-html-report-full.png" --window-size=1280,6500 \
     "file://$PWD/ubuntu-captures/report.html" >/dev/null 2>&1 || true
 fi
 

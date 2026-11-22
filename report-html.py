@@ -43,6 +43,15 @@ APP_GROUPS = (
         ("VS Code", "Chỉnh sửa mã nguồn và làm việc kỹ thuật.", ("code",), ("code",)),
         ("Docker", "Chạy môi trường ứng dụng riêng cho người làm kỹ thuật.", ("docker",), ("docker-ce", "docker.io")),
     )),
+    ("Tiện ích Windows → Ubuntu", (
+        ("Sao lưu Backups", "Mở Backups để chọn nơi lưu bản sao tài liệu; chưa tự sao lưu nếu bạn chưa thiết lập.", ("deja-dup",), ("deja-dup",)),
+        ("Archive Manager", "Mở và giải nén tệp ZIP, 7z và các định dạng được hỗ trợ.", ("file-roller",), ("file-roller",)),
+        ("Xem nhanh tệp", "Trong Files, chọn tệp và nhấn Space để xem nhanh nếu được hỗ trợ.", ("gnome-sushi",), ("gnome-sushi",)),
+        ("Disk Usage Analyzer", "Xem thư mục nào đang chiếm nhiều dung lượng.", ("baobab",), ("baobab",)),
+        ("Disks", "Kiểm tra ổ cứng/USB; không tự định dạng hoặc thay đổi phân vùng.", ("gnome-disks",), ("gnome-disk-utility",)),
+        ("Ổ NTFS và exFAT", "Hỗ trợ ổ đĩa di động từ Windows.", ("ntfs-3g",), ("ntfs-3g", "exfatprogs")),
+        ("Chia sẻ Windows / NAS", "Trong Files → Other Locations, kết nối smb://máy-chủ/thư-mục.", ("gio",), ("gvfs-backends",)),
+    )),
 )
 
 
@@ -66,6 +75,8 @@ def app_installed(name, binaries, packages):
         return (bindir / "zalo-linux").is_file() and (appdir / "Zalo-x86_64.AppImage").is_file()
     if name == "Unikey tiếng Việt":
         return pkg_installed("ibus-unikey") or pkg_installed("fcitx5-unikey")
+    if name in ("Ổ NTFS và exFAT", "Chia sẻ Windows / NAS"):
+        return all(pkg_installed(p) for p in packages)
     return any(shutil.which(program) for program in binaries) or any(pkg_installed(p) for p in packages)
 
 
@@ -257,6 +268,7 @@ HTML_TEMPLATE = r'''<!doctype html>
     .keymap { display:flex;flex-wrap:wrap;gap:7px;margin:13px 0; }
     .keymap span {background:#edf3f7;padding:5px 8px;border-radius:7px;font-size:12px;color:#35586f;}
     .app-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .app-grid > .app-group:last-child:nth-child(odd) {grid-column:1/-1;}
     .app-group { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
     .app-group h3 { background:#eaf1f6; color:#274c66;padding:15px 17px; margin:0; }
     table { border-collapse:collapse; width:100%; } td { padding:11px 13px; border-top:1px solid #ecf0f3; vertical-align:middle; }
@@ -275,6 +287,7 @@ HTML_TEMPLATE = r'''<!doctype html>
       color:#667c8b;font-size:12px;padding:19px 18px 39px;text-align:center; }
     footer a {color:#325d7c;text-underline-offset:3px;}
     @media(max-width:760px) { .summary,.steps,.app-grid,.pairs,.mini-flow {grid-template-columns:1fr;}
+      .app-grid > .app-group:last-child:nth-child(odd){grid-column:auto;}
       .panel {padding:21px;} .status-cell{width:135px;} .nav .nav-brand{display:none;}
       .hero{padding:32px 0 37px;} .mock{max-width:410px;} .meta{gap:8px;} }
     @media print { body{background:white;} .panel,.stat{box-shadow:none;break-inside:avoid;}
@@ -413,6 +426,10 @@ HTML_TEMPLATE = r'''<!doctype html>
         <div><b>Microsoft Word / Excel</b> → WPS Office / LibreOffice</div>
         <div><b>Windows + Shift + S</b> → Ctrl + Alt + S (Flameshot)</div>
         <div><b>Alt + Tab, Ctrl + C/V, Ctrl + S</b> → dùng giống Windows</div>
+        <div><b>Windows Network Drive / NAS</b> → Files → Other Locations → Connect to Server → <code>smb://server/share</code></div>
+        <div><b>Windows Backup</b> → Backups; tự chọn nơi lưu bản sao trước khi bật sao lưu định kỳ</div>
+        <div><b>File preview</b> → Files → chọn tệp → nhấn Space</div>
+        <div><b>Disk Cleanup / Storage</b> → Disk Usage Analyzer</div>
       </div>
     </section>
     <section class="panel">

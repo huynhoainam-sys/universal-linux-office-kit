@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PROFILE="full"
+PROFILE="desktop"
 DRY_RUN=0
 ASSUME_YES=0
 NO_REBOOT=0
@@ -31,6 +31,8 @@ UI_COLOR=0
 UI_VISIBLE=0
 UI_STAGE=0
 UI_TOTAL=0
+UI_STAGE_WARNINGS=0
+UI_STAGE_FAILURES=0
 UI_RESET=$'\033[0m'
 # Restrained slate palette, readable on GNOME Terminal dark and light themes.
 UI_CYAN=$'\033[38;5;110m'
@@ -55,39 +57,59 @@ ui_paint() {
 
 ui_banner() {
   (( UI_VISIBLE )) || return 0
-  ui_paint "$UI_CYAN" '  NAMHH  /  UNIVERSAL LINUX OFFICE KIT'
-  ui_paint "$UI_MUTED" '  UBUNTU DESKTOP SETUP  ·  WPS / UNIKEY / FLAMESHOT / ZALO'
-  ui_paint "$UI_MUTED" '  Designed by NAMHH  ·  huynhoainam@gmail.com'
-  ui_paint "$UI_MUTED" '  ─────────────────────────────────────────────────────'
+  ui_paint "$UI_MUTED" '  ──────────────────────────────────────────────────────────'
+  ui_paint "$UI_CYAN"  '    N A M H H   /   D E S K T O P   K I T'
+  ui_paint "$UI_MUTED" '    UNIVERSAL LINUX OFFICE KIT  ·  UBUNTU READY'
+  ui_paint "$UI_MUTED" '    Thiết kế: NAMHH  /  huynhoainam@gmail.com'
+  ui_paint "$UI_MUTED" '  ──────────────────────────────────────────────────────────'
   printf '\n'
 }
 
+ui_stage_close() {
+  (( UI_VISIBLE && UI_STAGE > 0 )) || return 0
+  if ((${#FAILURES[@]} > UI_STAGE_FAILURES)); then
+    ui_paint "$UI_RED" '           ×  Cần kiểm tra  ·  chi tiết trong báo cáo'
+  elif ((${#WARNINGS[@]} > UI_STAGE_WARNINGS)); then
+    ui_paint "$UI_YELLOW" '           !  Có lưu ý  ·  xem báo cáo cuối'
+  else
+    ui_paint "$UI_GREEN" '           ✓  Hoàn tất bước'
+  fi
+}
+
 ui_stage() {
+  ui_stage_close
   (( UI_STAGE += 1 ))
+  UI_STAGE_WARNINGS=${#WARNINGS[@]}
+  UI_STAGE_FAILURES=${#FAILURES[@]}
   (( UI_VISIBLE && UI_TOTAL > 0 )) || return 0
-  local indicator
-  printf -v indicator '  [%02d/%02d]  %s' "$UI_STAGE" "$UI_TOTAL" "$*"
+  local indicator percent=$((UI_STAGE * 100 / UI_TOTAL))
+  printf -v indicator '  [%02d/%02d · %3d%%]  %s' "$UI_STAGE" "$UI_TOTAL" "$percent" "$*"
   ui_paint "$UI_BLUE" "$indicator"
   # Optional pause for GitHub Actions' terminal screenshot only; unset in normal installs.
   if [[ -n "${UI_STAGE_DELAY:-}" ]]; then sleep "$UI_STAGE_DELAY"; fi
 }
 
 ui_finish() {
+  ui_stage_close
   (( UI_VISIBLE )) || return 0
+  printf '\n'
   if ((${#FAILURES[@]})); then
-    ui_paint "$UI_RED" "  LỖI  ·  ${#FAILURES[@]} lỗi / ${#WARNINGS[@]} cảnh báo"
+    ui_paint "$UI_RED" "  CẦN KIỂM TRA  ·  ${#FAILURES[@]} lỗi / ${#WARNINGS[@]} lưu ý"
+  elif (( DRY_RUN )); then
+    ui_paint "$UI_CYAN" "  ĐÃ MÔ PHỎNG  ·  ${UI_STAGE}/${UI_TOTAL} bước (100%)"
   else
     ui_paint "$UI_GREEN" "  HOÀN TẤT  ·  ${UI_STAGE}/${UI_TOTAL} bước (100%)"
-    ((${#WARNINGS[@]} == 0)) || ui_paint "$UI_YELLOW" "  CẢNH BÁO   ·  ${#WARNINGS[@]} mục cần xem lại"
+    ((${#WARNINGS[@]} == 0)) || ui_paint "$UI_YELLOW" "  LƯU Ý  ·  ${#WARNINGS[@]} mục cần xem lại"
   fi
-  ui_paint "$UI_MUTED" "  Báo cáo HTML: ${REPORT_HTML_PATH##*/}  ·  tự mở trong trình duyệt"
+  ui_paint "$UI_MUTED" "  BÁO CÁO  ·  ${REPORT_HTML_PATH##*/}"
+  ui_paint "$UI_MUTED" '  HỖ TRỢ   ·  huynhoainam@gmail.com'
 }
 
 usage() {
   cat <<'EOF'
 Universal Linux Office Kit
 Usage: ./setup.sh [options]
-  --profile minimal|office|full  What to install (default: full)
+  --profile minimal|office|desktop|full  What to install (default: desktop)
   --dry-run                      Print actions without changing the system
   --yes                          Skip confirmation
   --no-reboot                    Never offer reboot
@@ -118,9 +140,8 @@ log() {
   if (( UI_VISIBLE && ! UI_VERBOSE )); then
     case "$*" in
       'PASS: Báo cáo dễ đọc:'*) ui_paint "$UI_GREEN" '  ✓  Báo cáo HTML đã tạo thành công'; return 0 ;;
-      'PASS: Office đã có'*) ui_paint "$UI_GREEN" "  ✓  ${*#PASS: }"; return 0 ;;
       'WARN:'*) ui_paint "$UI_YELLOW" "  !  ${*#WARN: }"; return 0 ;;
-      'FAIL:'*) ui_paint "$UI_RED" "  x  ${*#FAIL: }"; return 0 ;;
+      'FAIL:'*) ui_paint "$UI_RED" '  ×  Có lỗi ở bước hiện tại; xem setup.log hoặc báo cáo.'; return 0 ;;
       *) return 0 ;;
     esac
   fi
@@ -139,10 +160,19 @@ fail() { FAILURES+=("$*"); log "FAIL: $*"; }
 run() {
   log "+ $*"
   if (( DRY_RUN )); then return 0; fi
+  # Leave sudo's password prompt on /dev/tty; keep APT/dpkg chatter in setup.log.
+  # This makes the installer readable without losing diagnostics on failures.
+  if (( UI_VISIBLE && ! UI_VERBOSE )); then
+    "$@" >>"$LOG_PATH" 2>&1
+    return $?
+  fi
   "$@"
 }
 
-apt_run() { run sudo apt-get "$@"; }
+apt_run() {
+  run sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=25 \
+    -o Acquire::https::Timeout=25 "$@"
+}
 
 backup_desktop_settings() {
   (( DRY_RUN )) && { log '+ back up desktop settings'; return 0; }
@@ -156,6 +186,9 @@ backup_desktop_settings() {
   local file
   for file in \
     "${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" \
+    "$HOME/.xinputrc" \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/namhh-unikey-guard.desktop" \
+    "${XDG_BIN_HOME:-$HOME/.local/bin}/namhh-unikey-guard" \
     "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/ulok-flameshot.desktop" \
     "${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-flameshot"; do
     if [[ -f "$file" ]]; then
@@ -175,6 +208,9 @@ restore_desktop_settings() {
   local dest
   for dest in \
     "${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile" \
+    "$HOME/.xinputrc" \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/namhh-unikey-guard.desktop" \
+    "${XDG_BIN_HOME:-$HOME/.local/bin}/namhh-unikey-guard" \
     "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/ulok-flameshot.desktop" \
     "${XDG_BIN_HOME:-$HOME/.local/bin}/ulok-flameshot"; do
     if [[ -f "$BACKUP_DIR/$(basename "$(dirname "$dest")")-$(basename "$dest")" ]]; then
@@ -213,7 +249,7 @@ repair_package_state() {
   log 'Repairing package state before installation'
   run sudo dpkg --configure -a || warn 'dpkg --configure -a cần xử lý thủ công'
   apt_run -f install -y || warn 'apt-get -f install thất bại; các bước sau có thể bị bỏ qua'
-  apt_run update || { fail 'apt update thất bại'; return 1; }
+  apt_run update || { warn 'APT update bị proxy/mirror chặn; thử cài từ cache hiện có'; return 1; }
 }
 
 install_apt() {
@@ -227,7 +263,7 @@ install_apt() {
     log "APT: tất cả gói đã có, bỏ qua (${packages[*]})"
     return 0
   fi
-  apt_run install -y --no-install-recommends "${missing[@]}" || { fail "Không cài được: ${missing[*]}"; return 1; }
+  apt_run install -y --no-install-recommends "${missing[@]}" || { warn "Chưa cài được: ${missing[*]}"; return 1; }
 }
 
 package_installed() {
@@ -256,12 +292,12 @@ install_deb_url() {
     log "+ sudo apt-get install -y $target"
     return 0
   fi
-  curl -fL --retry 3 --retry-delay 2 -o "$target" "$url" || { fail "Download failed: $name"; return 1; }
+  run curl -fLSs --show-error --connect-timeout 20 --max-time 600 --retry 2 --retry-delay 2 -o "$target" "$url" || { warn "Không tải được: $name"; return 1; }
   if [[ -n "$digest" ]] && ! printf '%s  %s\n' "$digest" "$target" | sha256sum --check --status; then
-    fail "SHA-256 mismatch: $name; refusing installation"
+    warn "SHA-256 không khớp: $name; không cài gói không xác minh"
     return 1
   fi
-  sudo apt-get install -y "$target" || { fail "Install failed: $name"; return 1; }
+  apt_run install -y "$target" || { warn "Không cài được: $name"; return 1; }
   rm -f "$target"
 }
 
@@ -396,7 +432,6 @@ module_office() {
   install_apt fonts-crosextra-carlito fonts-crosextra-caladea \
     fonts-liberation2 fonts-noto-color-emoji || true
   configure_office_fonts
-  module_vietnamese_input
   module_canon_ufrii || true
 }
 
@@ -498,20 +533,25 @@ EOF
 
 module_vietnamese_input() {
   log 'Module: Vietnamese input method (Unikey)'
+  if ! command -v python3 >/dev/null 2>&1; then
+    install_apt python3 || return 1
+  fi
   # Choose for the CURRENT desktop, even if the other input framework was installed
   # by an older run. A stray Fcitx package must not override GNOME's IBus.
   if desktop_is_cinnamon || { [[ "${ID:-}" == linuxmint ]] && ! desktop_is_gnome; }; then
-    install_apt fcitx5 fcitx5-unikey fcitx5-config-qt im-config || return 1
+    install_apt fcitx5 fcitx5-unikey || return 1
+    install_apt fcitx5-config-qt im-config || warn 'Thiếu giao diện cấu hình Fcitx5; bộ gõ chính vẫn được cài'
     configure_fcitx5_unikey
   else
-    install_apt ibus ibus-unikey ibus-gtk3 ibus-gtk4 im-config || return 1
+    install_apt ibus ibus-unikey || return 1
+    install_apt ibus-gtk3 ibus-gtk4 im-config || warn 'Thiếu tích hợp IBus phụ; bộ gõ chính vẫn được cài'
     configure_ibus_unikey
   fi
 }
 
 configure_fcitx5_unikey() {
   if (( DRY_RUN )); then log '+ select Fcitx5 and add Unikey to user profile'; return 0; fi
-  package_installed fcitx5-unikey || { warn 'Fcitx5 Unikey chưa cài được'; return 0; }
+  package_installed fcitx5-unikey || { warn 'Fcitx5 Unikey chưa cài được'; return 1; }
   if command -v im-config >/dev/null; then
     im-config -n fcitx5 >/dev/null 2>&1 || warn 'Không chọn được Fcitx5 qua im-config'
   fi
@@ -576,7 +616,7 @@ EOF
 
 configure_ibus_unikey() {
   if (( DRY_RUN )); then log '+ check IBus Unikey engine'; return 0; fi
-  package_installed ibus-unikey || { warn 'IBus Unikey chưa cài được'; return 0; }
+  package_installed ibus-unikey || { warn 'IBus Unikey chưa cài được'; return 1; }
   if command -v im-config >/dev/null; then
     im-config -n ibus >/dev/null 2>&1 || warn 'Không chọn được IBus qua im-config'
   fi
@@ -597,9 +637,16 @@ PY
   fi
   if [[ -z "$engine" ]]; then
     warn 'Không xác định được engine IBus Unikey; thêm trong Settings > Keyboard > Input Sources'
-    return 0
+    return 1
   fi
   log "IBus Unikey engine available: $engine"
+  # These keys belong to the distro's ibus-unikey schema (not VNI-Win charset).
+  # VNI is a typing METHOD; Unicode is the text ENCODING for modern applications.
+  if command -v gsettings >/dev/null && \
+      gsettings list-schemas 2>/dev/null | grep -qx 'org.freedesktop.ibus.engine.unikey'; then
+    gsettings set org.freedesktop.ibus.engine.unikey input-method vni || warn 'Chưa đặt được kiểu gõ VNI trong phiên này'
+    gsettings set org.freedesktop.ibus.engine.unikey output-charset unicode || warn 'Chưa đặt được bảng mã Unicode trong phiên này'
+  fi
   if desktop_is_gnome && command -v gsettings >/dev/null; then
     current="$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null)" || current=''
     if [[ -n "$current" ]]; then
@@ -639,7 +686,42 @@ PY
       fi
     fi
   fi
+  install_unikey_session_guard
   log 'Chọn Unikey trong Input Sources; có thể cần đăng xuất/đăng nhập một lần'
+}
+
+install_unikey_session_guard() {
+  (( DRY_RUN )) && { log '+ install NAMHH Unikey session guard'; return 0; }
+  desktop_is_gnome || return 0
+  local source="$ROOT_DIR/scripts/unikey-session-guard.sh"
+  local launcher="${XDG_BIN_HOME:-$HOME/.local/bin}/namhh-unikey-guard"
+  local autostart="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/namhh-unikey-guard.desktop"
+  if [[ ! -s "$source" ]] || ! bash -n "$source"; then
+    warn 'Thiếu Unikey session guard; gõ tiếng Việt vẫn có thể chọn qua Settings'
+    return 0
+  fi
+  if [[ -e "$launcher" ]] && ! grep -q '^# NAMHH: restore a missing GNOME IBus Unikey' "$launcher"; then
+    warn "Giữ nguyên tiện ích người dùng: $launcher"
+    return 0
+  fi
+  if [[ -e "$autostart" ]] && ! grep -q '^X-NAMHH-Managed=true$' "$autostart"; then
+    warn "Giữ nguyên autostart người dùng: $autostart"
+    return 0
+  fi
+  mkdir -p -- "$(dirname -- "$launcher")" "$(dirname -- "$autostart")"
+  install -m 0755 -- "$source" "$launcher"
+  cat > "$autostart" <<EOF
+[Desktop Entry]
+Type=Application
+Name=NAMHH Unikey Session Guard
+Comment=Restore a missing Unikey input source after login
+Exec=$launcher
+TryExec=$launcher
+X-GNOME-Autostart-enabled=true
+X-NAMHH-Managed=true
+NoDisplay=true
+EOF
+  log 'NAMHH Unikey session guard enabled (repairs missing sources, preserves current layout)'
 }
 
 module_canon_ufrii() {
@@ -685,9 +767,24 @@ module_canon_ufrii() {
 
 module_media() {
   log 'Module: media'
-  install_apt vlc ffmpeg imagemagick gimp file libavcodec-extra fonts-noto-core \
+  install_apt vlc ffmpeg file libavcodec-extra fonts-noto-core \
     fonts-noto-cjk fonts-liberation || true
-  module_flameshot || warn 'Flameshot setup failed; inspect APT errors above'
+  if [[ "$PROFILE" == full ]]; then
+    install_apt imagemagick gimp || true
+  fi
+}
+
+# Small, practical Windows-to-Ubuntu conveniences. No services are enabled,
+# backup destinations selected, drives reformatted or desktop preferences reset.
+module_everyday() {
+  log 'Module: everyday desktop'
+  install_apt file-roller deja-dup baobab gnome-disk-utility \
+    ntfs-3g exfatprogs gvfs-backends || true
+  install_apt gstreamer1.0-plugins-good gstreamer1.0-libav || true
+  if desktop_is_gnome; then
+    install_apt gnome-sushi gnome-tweaks || true
+  fi
+  install_apt remmina remmina-plugin-rdp remmina-plugin-vnc || true
 }
 
 module_flameshot() {
@@ -705,12 +802,12 @@ module_flameshot() {
     return 1
   fi
   if [[ "${XDG_SESSION_TYPE:-}" == wayland ]] && desktop_is_gnome; then
-    install_apt xdg-desktop-portal xdg-desktop-portal-gnome || return 1
+    install_apt xdg-desktop-portal xdg-desktop-portal-gnome || warn 'Thiếu portal Wayland; Flameshot vẫn được cài và gán phím tắt'
     # Install the matching native Wayland Qt backend; Ubuntu LTS versions vary.
     if command -v ldd >/dev/null 2>&1 && ldd "$(command -v flameshot)" 2>/dev/null | grep -q 'libQt6Core'; then
-      install_apt qt6-wayland || return 1
+      install_apt qt6-wayland || warn 'Thiếu Qt6 Wayland plugin; thử chụp sau khi đăng xuất'
     else
-      install_apt qtwayland5 || return 1
+      install_apt qtwayland5 || warn 'Thiếu Qt5 Wayland plugin; thử chụp sau khi đăng xuất'
     fi
   fi
   configure_flameshot_shortcut
@@ -943,7 +1040,12 @@ module_zalo() {
       return 1
     fi
   fi
-  if ! ZALO_VARIANT="$ZALO_VARIANT" bash "$installer"; then
+  if (( UI_VISIBLE && ! UI_VERBOSE )); then
+    if ! ZALO_VARIANT="$ZALO_VARIANT" bash "$installer" >>"$LOG_PATH" 2>&1; then
+      fail 'Cài Zalo Linux thất bại; xem setup.log để kiểm tra GitHub API/mirror'
+      return 1
+    fi
+  elif ! ZALO_VARIANT="$ZALO_VARIANT" bash "$installer"; then
     fail 'Cài Zalo Linux thất bại; xem thông báo GitHub API/mirror ở phía trên'
     return 1
   fi
@@ -963,7 +1065,7 @@ verify() {
   for item in curl git ufw; do
     if command -v "$item" >/dev/null 2>&1; then log "PASS: $item"; else warn "Thiếu hoặc chưa có lệnh: $item"; fi
   done
-  if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
+  if [[ "$PROFILE" == office || "$PROFILE" == desktop || "$PROFILE" == full ]]; then
     for item in flameshot thunderbird pdfarranger ffmpeg; do
       command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Office app not found: $item"
     done
@@ -979,11 +1081,13 @@ verify() {
       warn 'Chưa xác nhận được bộ gõ tiếng Việt'
     fi
   fi
+  if [[ ( "$PROFILE" == desktop || "$PROFILE" == full ) && "$SKIP_THIRD_PARTY" == 0 ]]; then
+    [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]] && log 'PASS: Zalo Linux launcher' || warn 'Zalo Linux launcher not found'
+  fi
   if [[ "$PROFILE" == full && "$SKIP_THIRD_PARTY" == 0 ]]; then
     for item in google-chrome microsoft-edge code docker zoom; do
       command -v "$item" >/dev/null 2>&1 && log "PASS: $item" || warn "Optional app not found: $item"
     done
-    [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]] && log 'PASS: Zalo Linux launcher' || warn 'Zalo Linux launcher not found'
   fi
   if command -v dpkg >/dev/null; then
     local broken
@@ -1056,7 +1160,7 @@ main() {
       *) usage >&2; return 2 ;;
     esac
   done
-  case "$PROFILE" in minimal|office|full) ;; *) fail "Profile không hợp lệ: $PROFILE"; return 2 ;; esac
+  case "$PROFILE" in minimal|office|desktop|full) ;; *) fail "Profile không hợp lệ: $PROFILE"; return 2 ;; esac
   case "$ZALO_VARIANT" in chat|full) ;; *) fail "Zalo variant không hợp lệ: $ZALO_VARIANT"; return 2 ;; esac
   case "$OFFICE_SECONDARY" in auto|libreoffice|genoffice) ;; *) fail "Office secondary không hợp lệ: $OFFICE_SECONDARY"; return 2 ;; esac
   if [[ -z "$REPORT_HTML_PATH" ]]; then
@@ -1096,7 +1200,11 @@ main() {
         fail 'Sửa/cập nhật Zalo thất bại; không thay đổi dữ liệu đăng nhập'
       fi
     fi
-    if ((${#FAILURES[@]})); then restore_desktop_settings; fi
+    # A Zalo download/proxy failure must not roll back working Unikey/Flameshot
+    # settings. Keep the full snapshot for a targeted rollback if ever needed.
+    if ((${#FAILURES[@]})); then
+      log "Partial repair: keep successful components; desktop backup at $BACKUP_DIR"
+    fi
     ui_stage 'Tổng kết và ghi báo cáo'
     write_report
     ui_finish
@@ -1108,18 +1216,28 @@ main() {
     [[ "$answer" =~ ^[Yy]$ ]] || { log 'Cancelled by user'; write_report; return 0; }
   fi
   UI_TOTAL=5
-  if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then ((UI_TOTAL += 3)); fi
-  if [[ "$PROFILE" == full ]]; then ((UI_TOTAL += 5)); fi
+  if [[ "$PROFILE" == office || "$PROFILE" == desktop || "$PROFILE" == full ]]; then ((UI_TOTAL += 5)); fi
+  if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then ((UI_TOTAL += 2)); fi
+  if [[ "$PROFILE" == full ]]; then ((UI_TOTAL += 4)); fi
   ui_stage 'Kiểm tra và sửa trạng thái APT/dpkg'
   repair_package_state || true
   ui_stage 'Sao lưu cấu hình desktop'
   backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
   ui_stage 'Thư viện nền tảng và mạng'
   module_base
-  if [[ "$PROFILE" == office || "$PROFILE" == full ]]; then
+  if [[ "$PROFILE" == office || "$PROFILE" == desktop || "$PROFILE" == full ]]; then
+    # Establish the three user-critical apps before optional Office/media installs.
+    ui_stage 'UniKey · bộ gõ tiếng Việt và tự phục hồi phiên'
+    module_vietnamese_input || fail 'UniKey chưa được cấu hình; tiếp tục cài các ứng dụng còn lại'
+    ui_stage 'Flameshot · chụp màn hình Ctrl+Alt+S'
+    module_flameshot || fail 'Flameshot chưa hoàn tất; tiếp tục cài các ứng dụng còn lại'
+    if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then
+      ui_stage 'Zalo Linux · ứng dụng chat'
+      module_zalo || fail 'Zalo chưa hoàn tất; tiếp tục cài các ứng dụng còn lại'
+    fi
     ui_stage 'Office, font tiếng Việt và máy in'
     module_office
-    ui_stage 'Media và Flameshot GUI'
+    ui_stage 'Video, âm thanh và PDF'
     module_media
     ui_stage 'GenOffice'
     if [[ "$OFFICE_SECONDARY" == genoffice ]] && (( $(office_suite_count) < 2 )); then
@@ -1127,6 +1245,10 @@ main() {
     else
       log 'GenOffice: không cài thêm mặc định để giữ tối đa 2 bộ Office.'
     fi
+  fi
+  if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then
+    ui_stage 'Tiện ích Windows → Ubuntu · sao lưu, ổ đĩa, chia sẻ'
+    module_everyday
   fi
   if [[ "$PROFILE" == full ]]; then
     ui_stage 'Công cụ lập trình'
@@ -1137,8 +1259,6 @@ main() {
     module_flatpak
     ui_stage 'Ứng dụng bên thứ ba'
     module_third_party
-    ui_stage 'Zalo Linux'
-    module_zalo || true
   fi
   ui_stage 'Kiểm tra sau cài đặt'
   verify

@@ -70,25 +70,32 @@ if ! command -v apt-get >/dev/null || ! command -v sudo >/dev/null; then
   command -v curl >/dev/null || die "Thiếu curl; cài curl thủ công"
   command -v python3 >/dev/null || die "Thiếu python3; cài python3 thủ công"
 else
-  need=()
+  need=() optional=()
   command -v curl >/dev/null || need+=(curl)
   command -v python3 >/dev/null || need+=(python3)
-  command -v xclip >/dev/null || need+=(xclip)
-  command -v wl-paste >/dev/null || need+=(wl-clipboard)
-  command -v update-desktop-database >/dev/null || need+=(desktop-file-utils)
-  command -v notify-send >/dev/null || need+=(libnotify-bin)
+  command -v xclip >/dev/null || optional+=(xclip)
+  command -v wl-paste >/dev/null || optional+=(wl-clipboard)
+  command -v update-desktop-database >/dev/null || optional+=(desktop-file-utils)
+  command -v notify-send >/dev/null || optional+=(libnotify-bin)
   [[ "$(dpkg-query -W -f='${Status}' ca-certificates 2>/dev/null || true)" == 'install ok installed' ]] || need+=(ca-certificates)
   # Current upstream AppImages provide native calling on Linux (no Wine/i386).
   for pkg in libopus0 pulseaudio-utils; do
-    [[ "$(dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null || true)" == 'install ok installed' ]] || need+=("$pkg")
+    [[ "$(dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null || true)" == 'install ok installed' ]] || optional+=("$pkg")
   done
   if ! ldconfig -p 2>/dev/null | grep -F 'libfuse.so.2' >/dev/null; then
     if apt-cache show libfuse2t64 >/dev/null 2>&1; then need+=(libfuse2t64); else need+=(libfuse2); fi
   fi
   if (( ${#need[@]} )); then
-    info "Cài dependency: ${need[*]}"
-    sudo apt-get update
-    sudo apt-get install -y "${need[@]}"
+    info "Cài thư viện bắt buộc: ${need[*]}"
+  fi
+  if (( ${#need[@]} || ${#optional[@]} )); then
+    sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=25 -o Acquire::https::Timeout=25 update || info 'APT update bị proxy/mirror chặn; thử từ cache hiện có'
+  fi
+  if (( ${#need[@]} )); then
+    sudo apt-get install -y --no-install-recommends "${need[@]}" || die 'Thiếu thư viện bắt buộc cho Zalo; các tiện ích khác vẫn được tiếp tục'
+  fi
+  if (( ${#optional[@]} )); then
+    sudo apt-get install -y --no-install-recommends "${optional[@]}" || info 'Một số tiện ích Zalo (clipboard/âm thanh) chưa cài; vẫn tiếp tục AppImage'
   fi
 fi
 mkdir -p "$APP_DIR" "$BIN_DIR" "$DESKTOP_DIR"

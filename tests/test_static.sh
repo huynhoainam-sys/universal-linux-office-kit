@@ -54,4 +54,8 @@ bash "$ROOT/tests/test_repair_flow.sh"
 bash "$ROOT/tests/test_apt_skip.sh"
 bash "$ROOT/tests/test_zalo_bundle.sh"
 bash "$ROOT/tests/test_terminal_ui.sh"
+bash "$ROOT/tests/test_desktop_profile.sh"
+bash "$ROOT/tests/test_unikey_guard.sh"
+bash "$ROOT/tests/test_core_resilience.sh"
+bash "$ROOT/tests/test_profiles_matrix.sh"
 echo 'PASS: static checks'

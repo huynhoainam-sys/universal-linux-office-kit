@@ -13,7 +13,8 @@ UI_TOTAL=2
 output="$(ui_banner; ui_stage 'Kiểm tra Ubuntu'; log 'PASS: Kiểm tra hoàn tất'; ui_stage 'Zalo'; ui_finish)"
 [[ "$output" == *NAMHH* && "$output" == *huynhoainam@gmail.com* ]]
 [[ "$output" == *'100%'* && "$output" == *'Zalo'* ]]
-[[ "$output" == *'[01/02]'* && "$output" == *'[02/02]'* ]]
+[[ "$output" == *'[01/02 ·  50%]'* && "$output" == *'[02/02 · 100%]'* ]]
+[[ "$output" == *'Hoàn tất bước'* ]]
 [[ "$output" != *'█'* ]] || { echo 'FAIL: visual progress bar is too busy' >&2; exit 1; }
 [[ "$output" == *$'\033['* ]] || { echo 'FAIL: ANSI colors missing with FORCE_COLOR' >&2; exit 1; }
 [[ -s "$LOG_PATH" ]]
@@ -26,4 +27,11 @@ ui_init
 plain="$(ui_banner; ui_paint "$UI_GREEN" 'PASS: Không màu')"
 [[ "$plain" == *'Không màu'* ]]
 [[ "$plain" != *$'\033['* ]] || { echo 'FAIL: NO_COLOR ignored' >&2; exit 1; }
+
+# User-facing install must not leak APT internals; diagnostics stay in setup.log.
+unset NO_COLOR
+ui_init
+run_output="$(run bash -c 'printf "apt package chatter\\n"; printf "reading package lists\\n" >&2')"
+[[ "$run_output" != *'apt package chatter'* ]] || { echo 'FAIL: raw package log is visible' >&2; exit 1; }
+grep -q 'apt package chatter' "$LOG_PATH" || { echo 'FAIL: package details not persisted' >&2; exit 1; }
 echo 'PASS: branded ANSI terminal, progress and clean logs'

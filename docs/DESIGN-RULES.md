@@ -8,6 +8,8 @@
 - Người thiết kế và liên hệ: **NAMHH · huynhoainam@gmail.com**. Trong HTML, email phải là liên kết `mailto:`.
 - Không thêm tên công ty, sản phẩm hoặc logo bên thứ ba như một đối tác nếu chưa có quyền sử dụng.
 - Chỉ dùng một sắc nhấn xanh-teal, trạng thái xanh lá, cảnh báo vàng dịu và lỗi đỏ; không dùng gradient neon hoặc hiệu ứng nhấp nháy.
+- Terminal có banner NAMHH, mã bước `[01/12 · 8%]`, phản hồi theo bước và tổng kết. Không in lệnh APT dài; nội dung kỹ thuật được lưu trong `setup.log` và xem qua `--verbose`.
+- `dry-run` chỉ hiện **ĐÃ MÔ PHỎNG**, không in hoàn tất cài đặt thật.
 
 ## 2. Hệ màu và bố cục
 
@@ -43,6 +45,9 @@
 - Zalo quét QR xong quay lâu: đóng hẳn Zalo, lưu công việc, Restart…, mở lại và quét mã mới; giữ nguyên dữ liệu đăng nhập.
 - Không viết “đã cài thành công” trong báo cáo `dry-run`; thay bằng “bản chạy thử, không cài ứng dụng”.
 - Khi 2–3 bộ Office đã tồn tại, chỉ cảnh báo; không tự gỡ ứng dụng hay dữ liệu.
+- Ở `--profile desktop`, cài ba thành phần thiết yếu **Unikey → Flameshot → Zalo** trước Office và tiện ích phụ. Thiếu gói phụ không được chặn các thành phần thiết yếu.
+- Bộ gõ GNOME: IBus Unikey, **input-method=vni** và **output-charset=unicode** qua GSettings chính thức; session guard chỉ bổ sung mục Unikey bị mất và không xóa nguồn nhập khác.
+- Session guard chỉ đặt VNI/Unicode một lần lúc đăng nhập đầu tiên; các thay đổi về sau của người dùng được giữ nguyên. Không kill/restart daemon IBus giữa phiên Wayland.
 
 ## 5. Tốc độ và offline
 
@@ -54,7 +59,8 @@
 ## 6. QA bắt buộc trước khi cập nhật GitHub
 
 1. `bash tests/test_static.sh` và Python HTML tests đều PASS.
-2. GitHub Actions Ubuntu 24.04 chạy `--repair-desktop --dry-run`; không cài package thật hoặc dùng tài khoản Zalo.
-3. Chụp ảnh Terminal XTerm **nền đen thật**, rõ ba trạng thái: đầu, tiến trình, hoàn tất.
-4. Render HTML bằng Chromium, thử Firefox headless nếu có, kiểm tra icon Power/Logout/Restart, tiếng Việt và trạng thái thực tế.
-5. Chỉ công bố ảnh chạy thật kèm nhãn `dry-run`; không dùng ảnh mô phỏng làm bằng chứng cài đặt thành công.
+2. GitHub Actions Ubuntu **22.04 và 24.04** chạy `--profile desktop --dry-run`; không cài package thật hoặc dùng tài khoản Zalo.
+3. Mock các tình huống: FPT/proxy chặn APT, tải WPS lỗi, gói phụ lỗi, mất Unikey trong GNOME, VNI/Unicode, giữ cấu hình cá nhân, Flameshot Wayland, Zalo đã cài, tối đa hai bộ Office.
+4. Chụp ảnh Terminal XTerm **nền đen thật**, rõ ba trạng thái: đầu, tiến trình, hoàn tất.
+5. Render HTML bằng Chromium, thử Firefox headless nếu có, kiểm tra icon Power/Logout/Restart, tiếng Việt và trạng thái thực tế.
+6. Chỉ công bố ảnh chạy thật kèm nhãn `dry-run`; không dùng ảnh mô phỏng làm bằng chứng cài đặt thành công.
