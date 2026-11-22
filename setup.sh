@@ -14,6 +14,7 @@ FIX_UNIKEY=0
 FIX_FLAMESHOT=0
 FIX_ZALO=0
 UPDATE_ZALO=0
+FIX_ZALO_LOGIN=0
 REPAIR_DESKTOP=0
 ZALO_VARIANT='chat'
 BACKUP_DIR=''
@@ -37,6 +38,7 @@ Usage: ./setup.sh [options]
   --fix-unikey                  Repair Vietnamese input without full setup
   --fix-flameshot               Repair Flameshot without full setup
   --fix-zalo                    Repair Zalo, or install it when missing
+  --fix-zalo-login              Update Zalo, preserve old data, retry stuck QR login
   --update-zalo                 Update Zalo from its verified upstream release
   --repair-desktop              Repair Vietnamese input, Flameshot GUI and Zalo
   --zalo-variant chat|full      Zalo package (default: chat; full is legacy)
@@ -852,6 +854,7 @@ main() {
       --fix-unikey) FIX_UNIKEY=1; shift ;;
       --fix-flameshot) FIX_FLAMESHOT=1; shift ;;
       --fix-zalo) FIX_ZALO=1; shift ;;
+      --fix-zalo-login) FIX_ZALO_LOGIN=1; shift ;;
       --update-zalo) UPDATE_ZALO=1; shift ;;
       --repair-desktop) REPAIR_DESKTOP=1; shift ;;
       --zalo-variant) ZALO_VARIANT="${2:?Missing Zalo variant}"; shift 2 ;;
@@ -863,6 +866,7 @@ main() {
   case "$PROFILE" in minimal|office|full) ;; *) fail "Profile không hợp lệ: $PROFILE"; return 2 ;; esac
   case "$ZALO_VARIANT" in chat|full) ;; *) fail "Zalo variant không hợp lệ: $ZALO_VARIANT"; return 2 ;; esac
   if (( REPAIR_DESKTOP )); then FIX_UNIKEY=1; FIX_FLAMESHOT=1; FIX_ZALO=1; fi
+  if (( FIX_ZALO_LOGIN )); then FIX_ZALO=1; UPDATE_ZALO=1; fi
   if [[ "$PROFILE" == minimal && -n "$CANON_UFRII_ARCHIVE" ]]; then
     fail 'Canon UFR II cần profile office hoặc full'
     return 2
@@ -872,7 +876,21 @@ main() {
     backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
     if (( FIX_UNIKEY )); then module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
     if (( FIX_FLAMESHOT )); then module_flameshot || fail 'Sửa Flameshot thất bại'; fi
-    if (( FIX_ZALO || UPDATE_ZALO )); then module_zalo || fail 'Sửa/cập nhật Zalo thất bại'; fi
+    if (( FIX_ZALO || UPDATE_ZALO )); then
+      if module_zalo; then
+        if (( FIX_ZALO_LOGIN )); then
+          if (( DRY_RUN )); then
+            log '+ bash vendor/zalo/zalo-login-recover.sh --dry-run'
+          elif [[ -f "$ROOT_DIR/vendor/zalo/zalo-login-recover.sh" ]] && bash -n "$ROOT_DIR/vendor/zalo/zalo-login-recover.sh"; then
+            bash "$ROOT_DIR/vendor/zalo/zalo-login-recover.sh" || fail 'Không thể sao lưu dữ liệu cũ để sửa lỗi QR (đảm bảo Zalo đã đóng)'
+          else
+            fail 'Thiếu script phục hồi đăng nhập Zalo trong Office Kit'
+          fi
+        fi
+      else
+        fail 'Sửa/cập nhật Zalo thất bại; không thay đổi dữ liệu đăng nhập'
+      fi
+    fi
     if ((${#FAILURES[@]})); then restore_desktop_settings; fi
     write_report
     ((${#FAILURES[@]} == 0))

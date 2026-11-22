@@ -17,3 +17,10 @@ main --repair-desktop --yes --report "$REPORT_PATH"
 [[ -s "$REPORT_PATH" ]]
 find "$XDG_STATE_HOME/ulok/backups" -mindepth 1 -maxdepth 1 -type d | grep -q .
 echo 'PASS: one-shot desktop repair and automatic config snapshot'
+
+rm -f "$TEMP/flow"
+REPAIR_DESKTOP=0 FIX_UNIKEY=0 FIX_FLAMESHOT=0 FIX_ZALO=0 UPDATE_ZALO=0 FIX_ZALO_LOGIN=0
+main --fix-zalo-login --dry-run --yes --report "$REPORT_PATH"
+[[ "$(tr '\n' ',' < "$TEMP/flow")" == 'zalo,' ]]
+grep -q 'zalo-login-recover.sh --dry-run' "$TEMP/setup.log"
+echo 'PASS: QR login recovery dry run never moves user database'

@@ -26,6 +26,14 @@ bash "$HOME/universal-linux-office-kit/setup.sh" --update-zalo --yes
 
 **Chẩn đoán:** `bash "$HOME/universal-linux-office-kit/doctor.sh"` và `bash "$HOME/universal-linux-office-kit/vendor/zalo/zalo-doctor.sh"`.
 
+**Zalo quét QR xong cứ xoay “Đang đăng nhập…”:** đóng hoàn toàn Zalo rồi chạy lệnh cập nhật bộ cài và phục hồi phiên đăng nhập (sao lưu nguyên trạng `ZaloData` trước khi thử lại):
+
+```bash
+git -C "$HOME/universal-linux-office-kit" pull --ff-only && bash "$HOME/universal-linux-office-kit/setup.sh" --fix-zalo-login --yes
+```
+
+Lệnh `--fix-zalo-login` cập nhật Zalo từ bản phát hành upstream có xác minh checksum; nếu cập nhật thất bại, script **không đụng đến dữ liệu đăng nhập**. Sau khi cập nhật thành công, nó chuyển `~/.config/ZaloData` cũ sang thư mục `ZaloData.login-backup-*` cùng phân vùng, không xóa hoặc ghi đè và sẽ in cách khôi phục. Mở Zalo, xác nhận trên điện thoại rồi quét QR lại. Nếu vẫn xoay, kiểm tra Console (`Ctrl+Shift+I`) và thử mạng khác được IT cho phép; đây cũng có thể là lỗi kết nối/xác thực. Tham khảo [lỗi upstream #13](https://github.com/VN-Linux-Family/zalo-for-linux/issues/13).
+
 ---
 
 ```bash
@@ -60,7 +68,7 @@ Các profile:
 - `office`: minimal + LibreOffice, PDF, scan, media, browser integration và GenOffice trên máy tương thích.
 - `full`: office + development, remote desktop, Flatpak, Chrome, Edge, VS Code, Docker, Zoom và Zalo Linux bản `chat` hiện hành. Muốn thử `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
-Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
+Tùy chọn: `--repair-desktop`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
 
 ## App được cài và công dụng
 
