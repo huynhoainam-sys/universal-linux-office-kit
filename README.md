@@ -12,6 +12,8 @@ bash -c 'set -Eeuo pipefail; command -v git >/dev/null || { sudo apt-get update 
 
 Script tự kiểm tra và bỏ qua phần đã có. Không cần tải Zalo riêng hay thêm phần mềm để hiện giao diện Terminal.
 
+Terminal hiển thị nhận diện **NAMHH · huynhoainam@gmail.com**, màu chuyên nghiệp trên nền đen; cuối lượt tự mở báo cáo HTML có mục hướng dẫn song ngữ và minh họa các menu **Quick Settings → Power → Log Out… / Restart…** của Ubuntu GNOME.
+
 | Tự chuẩn bị | Dùng để làm gì? |
 |---|---|
 | **WPS Office** ưu tiên, thêm LibreOffice hoặc GenOffice khi cần | Soạn Word, Excel, PowerPoint, PDF; tối đa **2 bộ Office được bổ sung** |

@@ -4,7 +4,7 @@ set -Eeuo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.."
 mkdir -p ubuntu-captures
 export DISPLAY=:98
-Xvfb :98 -screen 0 1366x830x24 -nolisten tcp >ubuntu-captures/xvfb.log 2>&1 &
+Xvfb :98 -screen 0 1366x780x24 -nolisten tcp >ubuntu-captures/xvfb.log 2>&1 &
 xvfb_pid=$!
 term_pid=''
 cleanup() {
@@ -13,10 +13,11 @@ cleanup() {
 }
 trap cleanup EXIT
 sleep 2
+if command -v xsetroot >/dev/null 2>&1; then xsetroot -display :98 -solid '#05070b' || true; fi
 
-xterm -display :98 -fa 'DejaVu Sans Mono' -fs 12 -geometry 108x31+25+25 \
-  -bg '#1b2836' -fg '#d9e4eb' -cr '#90b6c7' -T 'NAMHH · Ubuntu 24.04 · dry-run' \
-  -e bash -c 'UI_STAGE_DELAY=2 FORCE_COLOR=1 TERM=xterm-256color bash setup.sh --repair-desktop --dry-run --yes --no-open-report --report "$PWD/ubuntu-captures/report.txt"; printf "\n  Ubuntu 24.04 test finished — dry-run, no packages installed.\n"; sleep 18' &
+xterm -display :98 -fa 'DejaVu Sans Mono' -fs 16 -geometry 102x27+25+22 \
+  -bg '#05070b' -fg '#e0e8ee' -cr '#8ba8bb' -T 'NAMHH · Ubuntu 24.04 · dry-run' \
+  -e bash -c 'printf "  Ubuntu 24.04 LTS / GitHub Actions / dry-run\n\n"; UI_STAGE_DELAY=2 FORCE_COLOR=1 TERM=xterm-256color bash setup.sh --repair-desktop --dry-run --yes --no-open-report --report "$PWD/ubuntu-captures/report.txt"; printf "\n  [CI] 6/6 bước đã chạy thử. Không cài package thật.\n"; sleep 18' &
 term_pid=$!
 
 # Distinct points in a genuine terminal session, not manually drawn mockups.

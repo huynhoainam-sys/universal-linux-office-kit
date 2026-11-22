@@ -31,7 +31,9 @@ class HtmlReportTests(unittest.TestCase):
             for phrase in (
                 "<!doctype html>", "lang=\"vi\"", "WPS Office", "GenOffice",
                 "Flameshot", "Ctrl", "Log Out", "Restart", "Zalo",
-                "VNI", "tie6ng1 vie6t5", "Windows", "huynhoainam@gmail.com",
+                "Quick Settings", "Log Out…", "Restart…", "Add Input Source",
+                "Character Set: Unicode", "Scan QR Code", "VNI",
+                "tie6ng1 vie6t5", "Windows", "huynhoainam@gmail.com",
             ):
                 self.assertIn(phrase, content)
             self.assertIn("&lt;script&gt;alert", content)

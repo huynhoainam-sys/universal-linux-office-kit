@@ -56,9 +56,9 @@ ui_paint() {
 ui_banner() {
   (( UI_VISIBLE )) || return 0
   ui_paint "$UI_CYAN" '  NAMHH  /  UNIVERSAL LINUX OFFICE KIT'
-  ui_paint "$UI_MUTED" '  Ubuntu · Linux Mint  |  Cài đặt & sửa lỗi desktop'
-  ui_paint "$UI_MUTED" '  Design: huynhoainam@gmail.com'
-  ui_paint "$UI_MUTED" '  ───────────────────────────────────────────────────'
+  ui_paint "$UI_MUTED" '  UBUNTU DESKTOP SETUP  ·  WPS / UNIKEY / FLAMESHOT / ZALO'
+  ui_paint "$UI_MUTED" '  Designed by NAMHH  ·  huynhoainam@gmail.com'
+  ui_paint "$UI_MUTED" '  ─────────────────────────────────────────────────────'
   printf '\n'
 }
 
@@ -80,7 +80,7 @@ ui_finish() {
     ui_paint "$UI_GREEN" "  HOÀN TẤT  ·  ${UI_STAGE}/${UI_TOTAL} bước (100%)"
     ((${#WARNINGS[@]} == 0)) || ui_paint "$UI_YELLOW" "  CẢNH BÁO   ·  ${#WARNINGS[@]} mục cần xem lại"
   fi
-  ui_paint "$UI_MUTED" "  Báo cáo: $REPORT_HTML_PATH"
+  ui_paint "$UI_MUTED" "  Báo cáo HTML: ${REPORT_HTML_PATH##*/}  ·  tự mở trong trình duyệt"
 }
 
 usage() {
@@ -115,6 +115,15 @@ EOF
 log() {
   local line="[$(date '+%F %T')] $*" color=''
   printf '%s\n' "$line" >> "$LOG_PATH"
+  if (( UI_VISIBLE && ! UI_VERBOSE )); then
+    case "$*" in
+      'PASS: Báo cáo dễ đọc:'*) ui_paint "$UI_GREEN" '  ✓  Báo cáo HTML đã tạo thành công'; return 0 ;;
+      'PASS: Office đã có'*) ui_paint "$UI_GREEN" "  ✓  ${*#PASS: }"; return 0 ;;
+      'WARN:'*) ui_paint "$UI_YELLOW" "  !  ${*#WARN: }"; return 0 ;;
+      'FAIL:'*) ui_paint "$UI_RED" "  x  ${*#FAIL: }"; return 0 ;;
+      *) return 0 ;;
+    esac
+  fi
   case "$*" in
     FAIL:*|*'FAIL:'*) color="$UI_RED" ;;
     WARN:*|*'WARN:'*) color="$UI_YELLOW" ;;
@@ -122,12 +131,6 @@ log() {
     Module:*|*'Module:'*) color="$UI_MUTED" ;;
     *) color='' ;;
   esac
-  if (( UI_VISIBLE && ! UI_VERBOSE )); then
-    case "$*" in
-      PASS:*|WARN:*|FAIL:*) ;;
-      *) return 0 ;;
-    esac
-  fi
   ui_paint "$color" "$line"
 }
 warn() { WARNINGS+=("$*"); log "WARN: $*"; }

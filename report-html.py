@@ -159,46 +159,79 @@ HTML_TEMPLATE = r'''<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NAMHH | Hướng dẫn làm quen Ubuntu & báo cáo cài đặt</title>
   <style>
-    :root { color-scheme: light; --ink:#223449; --muted:#586b7d; --blue:#365f7b;
-      --line:#dbe3e9; --surface:#fff; --bg:#f2f5f7; --green:#27674d; --amber:#815b24; }
+    :root { color-scheme: light; --ink:#192d41; --muted:#5c6e7e; --blue:#245b80;
+      --line:#dce5eb; --surface:#fff; --bg:#f4f7f9; --green:#216a4f; --amber:#815b24;
+      --dark:#0c2133; --soft:#edf4f8; }
     * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-padding-top:90px; }
     body { margin:0; background:var(--bg); color:var(--ink);
-      font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif; line-height:1.55; }
-    .wrap { width:min(1090px, calc(100% - 36px)); margin:auto; }
-    .hero { background:linear-gradient(120deg,#253d51,#42627a); color:white; padding:35px 0 32px; }
-    .brand { font-size:12px; font-weight:750; letter-spacing:.15em; color:#d5e4ed; }
-    h1 { margin:10px 0 5px; font-size:clamp(25px,4vw,39px); line-height:1.25; }
-    .hero p { color:#e3edf4; max-width:750px; margin:8px 0 0; }
-    .meta { font-size:13px; margin-top:18px; color:#d1dfe8; }
-    .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:20px 0; }
-    .stat,.panel { background:var(--surface); border:1px solid var(--line); border-radius:14px; }
-    .stat { padding:19px; } .stat strong { font-size:27px; display:block; color:var(--blue); }
-    .stat span { color:var(--muted); font-size:13px; }
-    .panel { padding:24px; margin:18px 0; box-shadow:0 2px 10px #233f5210; }
-    h2 { font-size:21px; margin:0 0 14px; } h3 { font-size:16px; margin:0 0 10px; }
+      font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif; line-height:1.6; }
+    .wrap { width:min(1130px, calc(100% - 38px)); margin:auto; }
+    .hero { position:relative; overflow:hidden; background:linear-gradient(115deg,#0b2438 0%,#254c67 80%,#38647b 100%);
+      color:white; padding:44px 0 55px; }
+    .hero::after { content:"";position:absolute;width:450px;height:450px;border:1px solid #ffffff1b;
+      border-radius:50%;right:-110px;top:-215px;box-shadow:0 0 0 65px #ffffff06,0 0 0 130px #ffffff06;pointer-events:none; }
+    .hero .wrap { position:relative;z-index:1; }
+    .brand { font-size:12px; font-weight:800; letter-spacing:.16em; color:#b9d8e8; }
+    .eyebrow { display:inline-block;margin:18px 0 2px;padding:5px 11px;border:1px solid #a8c6d66b;
+      border-radius:99px;color:#e1eef5;background:#ffffff12;font-size:12px;font-weight:700;letter-spacing:.02em; }
+    h1 { margin:11px 0 9px; font-size:clamp(29px,4vw,45px); line-height:1.2;letter-spacing:-.025em; }
+    .hero p { color:#e2ebf2; max-width:850px; margin:8px 0 0;font-size:15px; }
+    .meta { font-size:12px; margin-top:25px; color:#bdd1df; }
+    .nav-shell { position:sticky;top:0;z-index:10;background:#f8fafcfa;backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line); }
+    .nav { display:flex;align-items:center;gap:7px;overflow-x:auto;padding:11px 0; }
+    .nav a { color:#365671;text-decoration:none;font-weight:700;font-size:12px;white-space:nowrap;
+      border:1px solid transparent;border-radius:9px;padding:8px 12px; }
+    .nav a:hover,.nav a:focus-visible { background:#e5eef4;border-color:#c9dce7;outline:2px solid transparent; }
+    .nav .nav-brand { margin-right:auto;color:var(--dark);letter-spacing:.1em; }
+    .summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; margin:24px 0; }
+    .stat,.panel { background:var(--surface); border:1px solid var(--line); border-radius:16px; }
+    .stat { padding:21px 23px;border-top:3px solid #94b8cd; }
+    .stat strong { font-size:31px; display:block; color:var(--blue);letter-spacing:-.035em;line-height:1.25; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .panel { padding:29px 30px; margin:19px 0; box-shadow:0 8px 30px #18384d09; }
+    .section-label { font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#547d9d;
+      font-weight:800;margin-bottom:7px;display:block; }
+    h2 { font-size:23px; margin:0 0 11px;letter-spacing:-.02em; }
+    h3 { font-size:16px; margin:0 0 10px; }
     p { margin:8px 0 13px; } .sub { color:var(--muted); font-size:14px; }
+    a { color:#225c87; } a:focus-visible { outline:3px solid #8dbbd8;outline-offset:3px; }
     .notice,.alert { padding:13px 16px; border-radius:10px; background:#edf6f1;
       border-left:4px solid #63a484; color:#265a43; margin:18px 0; }
     .alert { background:#fff6e9; border-color:#dcab67; color:#795021; }
-    .steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }
-    .step { background:#f7f9fb; border:1px solid var(--line); border-radius:12px; padding:16px; }
-    .step .number { background:#dbe8f0; color:var(--blue); display:inline-flex; align-items:center;
-      justify-content:center; width:29px; height:29px; border-radius:50%; font-weight:750; }
-    .step strong { display:block; margin:11px 0 5px; }
+    .steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+    .step { background:#f7f9fb; border:1px solid var(--line); border-radius:13px; padding:19px;min-width:0; }
+    .step .number { background:#dbeaf3; color:var(--blue); display:inline-flex; align-items:center;
+      justify-content:center; width:31px; height:31px; border-radius:9px; font-weight:800; }
+    .step strong { display:block; margin:12px 0 6px;font-size:15px; }
     .step p { font-size:13px; color:var(--muted); margin:0; }
-    .mock { margin-top:13px; border:1px solid #c4d2dc; border-radius:9px; overflow:hidden;
-      background:#e8eef3; min-height:107px; font-size:12px; }
-    .mockbar { background:#303a47; color:white; display:flex; justify-content:space-between; padding:7px 10px; }
-    .focus { color:#fff; background:#587b96; border-radius:5px; padding:2px 7px; }
-    .mockmenu { margin:7px 12px 8px auto; background:white; border:1px solid #cad6df;
-      box-shadow:0 2px 7px #253d5120; border-radius:7px; width:84%; padding:8px; }
-    .mockline { padding:5px 8px; border-radius:5px; } .mockline.selected { background:#d9e8f1; color:#284b67; font-weight:700; }
+    .mock { margin-top:16px; border:1px solid #aebfcd; border-radius:10px; overflow:hidden;
+      background:#e9eff4; min-height:153px; font-size:12px;box-shadow:0 4px 10px #273d4b0e; }
+    .mockbar { background:#27333f; color:#fff; display:flex; justify-content:space-between; padding:10px 11px; }
+    .focus { color:#fff; background:#527d99; border:1px solid #b2d0e39c;border-radius:6px; padding:2px 7px; }
+    .mockmenu { margin:9px 10px 9px auto; background:#fff; border:1px solid #cad6df;
+      box-shadow:0 6px 16px #253d5122; border-radius:9px; width:87%; padding:9px; }
+    .mockline { padding:8px 10px; border-radius:6px; } .mockline.selected { background:#d6e8f3; color:#1a506e; font-weight:800; }
+    .mocknote { padding:24px 14px 10px;text-align:right;color:#315d78;font-weight:700;font-size:11px; }
     .key { display:inline-block; border:1px solid #b9cbd8; background:#f3f6f8; box-shadow:0 2px 0 #d2dce2;
       border-radius:5px; padding:1px 7px; white-space:nowrap; color:#304b60; font-weight:650; }
-    .tip { margin-top:14px; background:#eef4f8; border-radius:9px; padding:12px 14px; font-size:14px; }
+    .tip { margin-top:17px; background:#edf5f9; border-left:3px solid #83b3cc;
+      border-radius:9px; padding:15px 17px; font-size:14px; }
+    .guide-list { margin:13px 0 0;padding-left:23px; }
+    .guide-list li { padding-left:7px;margin:11px 0; }
+    .guide-list li::marker { color:#2e6b91;font-weight:800; }
+    .guide-shot { background:#f5f8fa;border:1px solid #d7e4eb;border-radius:13px;padding:17px;margin:17px 0; }
+    .guide-shot .caption { color:#476b83;font-size:12px;margin-top:9px; }
+    .mini-flow { display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:12px; }
+    .mini-card { background:white;border:1px solid #d9e4eb;border-radius:11px;padding:15px; }
+    .mini-card b {display:block;margin-bottom:7px;} .mini-card p {font-size:12px;color:var(--muted);}
+    .mini-card.bad {border-color:#dfcda8;background:#fffbf3;} .mini-card.good {border-color:#b5d6c6;background:#f3faf6;}
+    .keymap { display:flex;flex-wrap:wrap;gap:7px;margin:13px 0; }
+    .keymap span {background:#edf3f7;padding:5px 8px;border-radius:7px;font-size:12px;color:#35586f;}
     .app-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
     .app-group { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
-    .app-group h3 { background:#edf2f6; padding:13px 15px; margin:0; }
+    .app-group h3 { background:#eaf1f6; color:#274c66;padding:15px 17px; margin:0; }
     table { border-collapse:collapse; width:100%; } td { padding:11px 13px; border-top:1px solid #ecf0f3; vertical-align:middle; }
     td strong { font-size:14px; } td small { display:block; color:var(--muted); font-size:12px; margin-top:1px; }
     .status-cell { text-align:right; width:145px; } .pill { font-size:11px; font-weight:650;
@@ -211,17 +244,29 @@ HTML_TEMPLATE = r'''<!doctype html>
     details { margin-top:12px; padding:13px 16px; border:1px solid var(--line); border-radius:10px; }
     summary { font-weight:700; cursor:pointer; color:var(--blue); }
     code { overflow-wrap:anywhere; } footer { text-align:center; color:#667c8b; font-size:12px; padding:12px 0 36px; }
-    @media(max-width:720px) { .summary,.steps,.app-grid,.pairs {grid-template-columns:1fr;} .panel {padding:18px;} .status-cell{width:135px;} }
-    @media print { body{background:white;} .panel,.stat{box-shadow:none;break-inside:avoid;} .hero{print-color-adjust:exact;} }
+    @media(max-width:760px) { .summary,.steps,.app-grid,.pairs,.mini-flow {grid-template-columns:1fr;}
+      .panel {padding:21px;} .status-cell{width:135px;} .nav .nav-brand{display:none;}
+      .hero{padding:32px 0 37px;} .mock{max-width:410px;} }
+    @media print { body{background:white;} .panel,.stat{box-shadow:none;break-inside:avoid;}
+      .hero{print-color-adjust:exact;} .nav-shell{display:none;} }
   </style>
 </head>
 <body>
   <header class="hero"><div class="wrap">
     <div class="brand">NAMHH / UNIVERSAL LINUX OFFICE KIT</div>
-    <h1>Chào mừng bạn đến với Ubuntu!</h1>
-    <p>${STATUS_TITLE}. ${STATUS_NOTE}</p>
+    <span class="eyebrow">HƯỚNG DẪN SAU CÀI ĐẶT · GETTING STARTED</span>
+    <h1>Ubuntu đã sẵn sàng để bạn làm quen</h1>
+    <p><strong>${STATUS_TITLE}.</strong> ${STATUS_NOTE}</p>
     <div class="meta">${OS_NAME} · Xuất báo cáo ${GENERATED} · Design: huynhoainam@gmail.com</div>
   </div></header>
+  <div class="nav-shell"><nav class="wrap nav" aria-label="Các mục hướng dẫn">
+    <span class="nav-brand">NAMHH KIT</span>
+    <a href="#checklist">Bắt đầu</a>
+    <a href="#logout">Log Out / Restart</a>
+    <a href="#vni">Unikey VNI</a>
+    <a href="#zalo">Zalo QR</a>
+    <a href="#apps">Ứng dụng</a>
+  </nav></div>
   <main class="wrap">
     <div class="summary">
       <div class="stat"><strong>${READY}/${TOTAL}</strong><span>Ứng dụng/tiện ích phát hiện sẵn sàng</span></div>
@@ -229,8 +274,10 @@ HTML_TEMPLATE = r'''<!doctype html>
       <div class="stat"><strong>3 bước</strong><span>Đăng xuất, đặt VNI, mở Zalo</span></div>
     </div>
     ${ALERT}
-    <section class="panel">
-      <h2>Việc nên làm ngay sau khi cài</h2>
+    <section class="panel" id="checklist">
+      <span class="section-label">01 / Bắt đầu · Start here</span>
+      <h2>Ba việc nên làm ngay sau khi cài</h2>
+      <p class="sub">Làm lần lượt ba việc này để chuyển từ Windows sang Ubuntu một cách thuận tiện.</p>
       <div class="steps">
         <div class="step"><span class="number">1</span><strong>Lưu tài liệu đang mở</strong>
           <p>Nhấn <span class="key">Ctrl</span> + <span class="key">S</span> trong Word/WPS hoặc ứng dụng khác trước khi thoát phiên.</p></div>
@@ -241,50 +288,64 @@ HTML_TEMPLATE = r'''<!doctype html>
       </div>
     </section>
     <section class="panel" id="logout">
-      <h2>Minh họa cách đăng xuất (Log Out) trên Ubuntu</h2>
-      <p class="sub">Đây là sơ đồ minh họa giao diện GNOME; vị trí/biểu tượng có thể hơi khác theo phiên bản Ubuntu.</p>
+      <span class="section-label">02 / Ubuntu GNOME · Session</span>
+      <h2>Đăng xuất (Log Out) hoặc khởi động lại (Restart)</h2>
+      <p class="sub">Làm theo tên menu <b>tiếng Anh</b> được in đậm. Hình dưới mô phỏng vị trí nút trên Ubuntu GNOME, không phải ảnh chụp giao diện máy của bạn.</p>
       <div class="steps">
-        <div class="step"><span class="number">1</span><strong>Bấm góc trên bên phải</strong>
-          <p>Tìm khu vực Wi‑Fi, âm lượng, pin ở thanh trên cùng.</p>
+        <div class="step"><span class="number">1</span><strong>Mở Quick Settings</strong>
+          <p>Bấm cụm Wi‑Fi / âm lượng / pin ở <b>góc trên bên phải</b> thanh trên cùng (top bar).</p>
           <div class="mock"><div class="mockbar"><span>Activities</span><span class="focus">Wi‑Fi · Sound · Power</span></div>
-          <div style="text-align:right;padding:32px 13px 8px;color:#47647a">↑ Bấm cụm biểu tượng này</div></div></div>
-        <div class="step"><span class="number">2</span><strong>Mở mục nguồn</strong>
-          <p>Trong bảng hiện ra, chọn <b>Power Off / Log Out</b> (Nguồn / Đăng xuất).</p>
+          <div class="mocknote">↑ Bấm vào cụm biểu tượng</div></div></div>
+        <div class="step"><span class="number">2</span><strong>Bấm nút Power</strong>
+          <p>Trong bảng <b>Quick Settings</b>, tìm nút nguồn <b>Power</b> / biểu tượng nguồn ở phía dưới.</p>
           <div class="mock"><div class="mockbar"><span>Quick Settings</span><span>×</span></div>
-          <div class="mockmenu"><div class="mockline">Wi‑Fi &nbsp; Âm lượng</div><div class="mockline selected">Power / Nguồn →</div></div></div></div>
-        <div class="step"><span class="number">3</span><strong>Chọn Log Out / Đăng xuất</strong>
-          <p>Xác nhận nếu hệ thống hỏi, sau đó đăng nhập lại bằng mật khẩu Ubuntu.</p>
+          <div class="mockmenu"><div class="mockline">Wi‑Fi &nbsp; &nbsp; Sound &nbsp; &nbsp; Bluetooth</div><div class="mockline selected">Power / Shutdown  →</div></div></div></div>
+        <div class="step"><span class="number">3</span><strong>Chọn “Log Out…”</strong>
+          <p>Chọn <b>Log Out…</b> rồi xác nhận <b>Log Out</b>. Đăng nhập lại bằng mật khẩu Ubuntu.</p>
           <div class="mock"><div class="mockbar"><span>Power</span><span>×</span></div>
-          <div class="mockmenu"><div class="mockline selected">↪ &nbsp; Log Out… / Đăng xuất</div><div class="mockline">⟲ &nbsp; Restart… / Khởi động lại</div></div></div></div>
+          <div class="mockmenu"><div class="mockline selected">Log Out… &nbsp; (Đăng xuất)</div><div class="mockline">Restart… &nbsp; (Khởi động lại)</div><div class="mockline">Power Off… &nbsp; (Tắt máy)</div></div></div></div>
       </div>
-      <div class="tip"><strong>Lưu ý:</strong> Đăng xuất sẽ đóng các ứng dụng đang mở. <b>Khóa màn hình (Lock)</b> không thay thế việc đăng xuất. Nếu Zalo quay đăng nhập quá lâu, chọn <b>Restart / Khởi động lại</b> ở bước 3.</div>
+      <div class="tip"><strong>Chọn đúng thao tác:</strong> <b>Log Out…</b> để áp dụng bộ gõ phiên đăng nhập mới; <b>Restart…</b> khi Zalo bị xoay ở màn hình đăng nhập quá lâu. <b>Lock</b> chỉ khóa màn hình, không phải đăng xuất. Hãy lưu tài liệu trước khi làm.</div>
     </section>
     <section class="panel" id="vni">
+      <span class="section-label">03 / Tiếng Việt · Input method</span>
       <h2>Gõ tiếng Việt kiểu VNI như trên Windows</h2>
-      <ol>
-        <li>Mở <b>Settings / Cài đặt → Keyboard / Bàn phím → Input Sources / Nguồn nhập</b>. Chọn hoặc thêm <b>Vietnamese (Unikey)</b>.</li>
-        <li>Nhấn <span class="key">Super</span> (phím Windows) + <span class="key">Space</span> để chuyển sang Unikey.</li>
-        <li>Bấm biểu tượng <b>VI / Unikey</b> trên thanh trên cùng → tùy chọn <b>Preferences / Cấu hình</b> → chọn <b>Input method: VNI</b> và <b>Character set: Unicode</b>. Đối với Linux Mint/Cinnamon, mở <b>Fcitx 5 Configuration → Unikey → Configure → VNI</b>.</li>
-        <li>Mở Text Editor/WPS, thử <span class="key">tie6ng1 vie6t5</span> → <b>tiếng việt</b>. Phím <b>1</b> là sắc, <b>2</b> huyền, <b>3</b> hỏi, <b>4</b> ngã, <b>5</b> nặng, <b>6</b> â/ê/ô, <b>7</b> ơ/ư, <b>8</b> ă, <b>9</b> đ.</li>
+      <p class="sub">Giữ cách gõ quen thuộc từ UniKey Windows. Hãy sử dụng <b>Unicode</b> cho Word, WPS, trình duyệt và Zalo.</p>
+      <ol class="guide-list">
+        <li><b>Thêm Unikey:</b> mở <b>Settings → Keyboard → Input Sources → Add Input Source → Vietnamese → Vietnamese (Unikey)</b> nếu chưa xuất hiện trong danh sách.</li>
+        <li><b>Chuyển bộ gõ:</b> nhấn <span class="key">Super</span> (phím Windows) + <span class="key">Space</span>, chọn <b>Vietnamese (Unikey)</b>.</li>
+        <li><b>Đặt VNI:</b> bấm mục <b>VI / Unikey</b> trên top bar → <b>Preferences / Setup</b> → <b>Input Method: VNI</b> và <b>Character Set: Unicode</b>. Trên Cinnamon, mở <b>Fcitx 5 Configuration → Unikey → Configure</b>.</li>
+        <li><b>Kiểm tra:</b> mở <b>Text Editor</b> hoặc <b>WPS Writer</b>, gõ <span class="key">tie6ng1 vie6t5</span> → <b>tiếng việt</b>.</li>
       </ol>
+      <div class="guide-shot"><strong>Phím số trong VNI / VNI number keys</strong>
+        <div class="keymap"><span>1 · Sắc</span><span>2 · Huyền</span><span>3 · Hỏi</span><span>4 · Ngã</span><span>5 · Nặng</span><span>6 · Â/Ê/Ô</span><span>7 · Ơ/Ư</span><span>8 · Ă</span><span>9 · Đ</span></div>
+        <div class="caption">Ví dụ: “a61” → “ấ”, “a81” → “ắ”.</div>
+      </div>
       <div class="tip">Nếu chưa thấy Unikey sau khi cài, hãy <a href="#logout">đăng xuất rồi đăng nhập lại</a>. Đừng cài hai bộ gõ chạy đồng thời; bộ cài đã chọn IBus cho Ubuntu GNOME và Fcitx5 cho Cinnamon.</div>
     </section>
     <section class="panel" id="zalo">
+      <span class="section-label">04 / Đăng nhập Zalo · QR Code</span>
       <h2>Zalo: quét QR rồi hiện “Đang đăng nhập…” quá lâu?</h2>
-      <ol>
+      <div class="mini-flow" aria-label="Các trạng thái khi đăng nhập Zalo">
+        <div class="mini-card good"><b>01 · Scan QR Code / Quét mã</b><p>Trên điện thoại, mở Zalo và xác nhận yêu cầu đăng nhập nếu được hỏi.</p></div>
+        <div class="mini-card bad"><b>02 · Signing in… / Đang đăng nhập…</b><p>Nếu vòng quay kéo dài vài phút, đóng Zalo rồi khởi động lại Ubuntu, sau đó quét mã mới.</p></div>
+      </div>
+      <ol class="guide-list">
         <li>Dùng điện thoại mở Zalo, quét <b>mã QR mới nhất</b> trên ứng dụng Zalo Linux và xác nhận yêu cầu đăng nhập trên điện thoại nếu có.</li>
-        <li>Nếu ứng dụng cứ xoay sau vài phút, hãy <b>đóng hẳn Zalo</b>, lưu công việc, chọn <b>Restart / Khởi động lại</b> trong menu nguồn của Ubuntu (xem minh họa phía trên).</li>
+        <li>Nếu ứng dụng cứ xoay sau vài phút, hãy <b>đóng hẳn Zalo</b>, lưu công việc, chọn <b>Quick Settings → Power → Restart…</b> (xem minh họa phía trên).</li>
         <li>Đăng nhập lại Ubuntu, mở <b>Zalo Linux</b> từ danh sách ứng dụng, quét lại mã QR mới. Không cần xóa dữ liệu chat hoặc cài lại ứng dụng.</li>
         <li>Nếu vẫn không vào được, có thể do kết nối mạng/proxy doanh nghiệp chặn bước xác thực. Hãy nhờ IT kiểm tra; không tự tắt bảo vệ mạng.</li>
       </ol>
       <div class="tip">Flameshot: bấm <span class="key">Ctrl</span> + <span class="key">Alt</span> + <span class="key">S</span> để chọn vùng màn hình. Lần đầu trên Wayland có thể hiện hộp thoại cho phép chia sẻ/chụp màn hình.</div>
     </section>
-    <section class="panel">
+    <section class="panel" id="apps">
+      <span class="section-label">05 / Ứng dụng · Installed apps</span>
       <h2>Ứng dụng của bạn và công dụng</h2>
       <p class="sub">Dựa trên ứng dụng thực tế phát hiện ở thời điểm tạo báo cáo. “Chưa cài / tùy chọn” không nhất thiết là lỗi; bạn không cần mọi ứng dụng trong danh sách.</p>
       <div class="app-grid">${APP_TABLES}</div>
     </section>
     <section class="panel">
+      <span class="section-label">06 / Windows → Ubuntu · Quick reference</span>
       <h2>Đổi từ Windows sang Ubuntu: nhớ nhanh</h2>
       <div class="pairs">
         <div><b>Start menu (Windows)</b> → Activities / phím Super</div>
@@ -296,6 +357,7 @@ HTML_TEMPLATE = r'''<!doctype html>
       </div>
     </section>
     <section class="panel">
+      <span class="section-label">07 / Dành cho IT · Technical details</span>
       <h2>Chi tiết cài đặt</h2>
       <p class="sub">Phần này dành cho IT nếu cần hỗ trợ. Người dùng thông thường không phải thao tác gì với các đường dẫn.</p>
       <details><summary>Xem cảnh báo và thông tin kỹ thuật</summary>
