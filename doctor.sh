@@ -126,13 +126,25 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
   else
     status 'Outlook Web' OPTIONAL 'run ./setup.sh --fix-outlook'
   fi
-  if has_package cnrdrvcups-ufr2 || has_package cnrdrvcups-ufr2-uk || has_package cnrdrvcups-ufr2-us; then
-    status 'Canon UFR II' PASS 'driver package installed'
+  if has_package cnrdrvcups-ufr2lt-uk || has_package cnrdrvcups-ufr2lt-us; then
+    status 'Canon UFRII LT' PASS 'driver for LBP6230/6240 available; verify CUPS queue model'
+  elif has_package cnrdrvcups-ufr2 || has_package cnrdrvcups-ufr2-uk || has_package cnrdrvcups-ufr2-us; then
+    status 'Canon UFR II' PASS 'generic UFR II installed; LBP6230/6240 needs UFRII LT'
   else
-    status 'Canon UFR II' OPTIONAL 'supply official archive for your model'
+    status 'Canon UFRII LT' OPTIONAL 'LBP6230/6240: download official v5.10 archive'
   fi
   if has_command lpstat; then
     lpstat -p -d 2>/dev/null || status 'Printer queue' INFO 'not configured'
+    while IFS= read -r printer_line; do
+      [[ "$printer_line" == 'device for '*': '* ]] || continue
+      printer_name="${printer_line#device for }"
+      printer_name="${printer_name%%:*}"
+      [[ "$printer_name" =~ ^LBP6230[-_]6240([-_][0-9]+)?$ ]] || continue
+      printer_ppd="/etc/cups/ppd/${printer_name}.ppd"
+      if [[ -r "$printer_ppd" ]] && grep -Eqi '^\*NickName:.*HP Designjet' "$printer_ppd"; then
+        status 'Canon LBP6230/6240' WARN "$printer_name uses HP Designjet; bash scripts/fix-canon-lbp6230.sh"
+      fi
+    done < <(lpstat -v 2>/dev/null || true)
   fi
 } | tee "$REPORT"
 

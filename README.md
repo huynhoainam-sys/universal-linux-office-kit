@@ -205,6 +205,32 @@ Tra model máy in trên [Canon Việt Nam](https://vn.canon/en/support), tải g
 
 Gói UFR II chỉ cài khi cung cấp archive; tránh áp nhầm driver cho máy Canon dùng CAPT hoặc driver khác. Script không tự thêm máy in vì cần địa chỉ IP/USB và model cụ thể.
 
+#### Sửa lỗi Canon LBP6230/6240 hiện driver HP Designjet (Ubuntu 22.04/24.04)
+
+Nếu trong **Settings → Printers** các hàng đợi `LBP6230-6240`, `LBP6230-6240-2`, `LBP6230-6240-3` lại hiện **Model: HP Designjet T920 PostScript**, thì đây là *driver bị gán nhầm* (trạng thái “Ready” không có nghĩa là in được). **Dòng này cần Canon UFRII LT V5.10**, không dùng ví dụ UFR II V6.40 nêu trên. Canon xác nhận hỗ trợ imageCLASS LBP6230dn bằng [UFRII LT V5.10](https://vn.canon/en/support/0100595001), file `linux-UFRIILT-drv-v510-m17n.tar.gz`. Canon Nhật cũng liệt kê LBP6230/6240 trong driver CARPS2 tương ứng. Luôn chọn bản tương ứng model trên tem máy.
+
+Kiểm tra an toàn (không chỉnh sửa gì):
+
+```bash
+cd "$HOME/universal-linux-office-kit"
+bash scripts/fix-canon-lbp6230.sh
+```
+
+Tải gói **UFRII LT V5.10** từ trang Canon chính thức trên (đọc và chấp nhận điều khoản của hãng), sau đó cài **chỉ driver Canon**, không cài lại Office/Zalo:
+
+```bash
+bash scripts/fix-canon-lbp6230.sh --archive "$HOME/Downloads/linux-UFRIILT-drv-v510-m17n.tar.gz" --apply
+```
+
+Chọn hàng đợi đang kết nối đúng USB hoặc IP trong kết quả kiểm tra; để thử với hàng đợi đầu tiên (không tự động sửa cả ba):
+
+```bash
+bash scripts/fix-canon-lbp6230.sh --queue LBP6230-6240 --dry-run
+bash scripts/fix-canon-lbp6230.sh --queue LBP6230-6240 --apply
+```
+
+Script chỉ thay **driver CUPS** của hàng đợi được chọn, **giữ URI kết nối**, sao lưu PPD hiện có trước khi sửa; không xóa hàng đợi và không chạm máy in Toshiba. Nếu Canon có nhiều lựa chọn driver hoặc không thấy đúng model, script dừng an toàn: dùng **Canon Printer Setup Utility** (`cnsetuputil2l`), thêm máy Canon qua USB/IP rồi in thử. **Chỉ xóa các hàng đợi sai/trùng sau khi hàng đợi Canon mới in thử thành công**. Giữ lại bản sao PPD để hoàn nguyên nếu cần.
+
 #### Thiết lập khổ giấy và in nhanh
 
 Sau khi cài driver, mở **Cài đặt → Máy in → Thêm máy in**, chọn máy Canon qua USB hoặc địa chỉ IP, rồi chọn đúng model/driver **Canon UFR II**. Đặt giấy trong khay máy và khổ giấy trong phần **Tùy chọn máy in** cùng một loại (thường là A4). Không đổi khổ của mọi máy in trong lúc chạy bộ cài vì mỗi máy có thể dùng giấy khác nhau.

@@ -845,10 +845,6 @@ EOF
 module_canon_ufrii() {
   [[ -n "$CANON_UFRII_ARCHIVE" ]] || { log 'Canon UFR II: no archive supplied; use --canon-ufrii-archive PATH'; return 0; }
   log 'Module: Canon UFR II printer driver'
-  if (( ! DRY_RUN )) && { package_installed cnrdrvcups-ufr2 || package_installed cnrdrvcups-ufr2-uk || package_installed cnrdrvcups-ufr2-us; }; then
-    log 'Canon UFR II driver already installed; skipping'
-    return 0
-  fi
   [[ -f "$CANON_UFRII_ARCHIVE" ]] || { fail "Không tìm thấy gói Canon: $CANON_UFRII_ARCHIVE"; return 1; }
   case "$CANON_UFRII_ARCHIVE" in *.tar.gz|*.tgz) ;; *) fail 'Gói Canon phải là .tar.gz/.tgz'; return 1 ;; esac
   local arch tmp package_dir
@@ -875,6 +871,18 @@ module_canon_ufrii() {
   done
   if ((${#selected[@]} == 0)); then
     rm -rf -- "$tmp"; fail "Gói Canon không có .deb cho $arch"; return 1
+  fi
+  # UFR II and UFRII LT are different packages. A generic UFR II install must
+  # not suppress the LBP6230/6240 UFRII LT driver from Canon's official archive.
+  local all_installed=1
+  for package in "${selected[@]}"; do
+    pkg_name="$(dpkg-deb -f "$package" Package 2>/dev/null || true)"
+    if ! package_installed "$pkg_name"; then all_installed=0; break; fi
+  done
+  if (( all_installed )); then
+    rm -rf -- "$tmp"
+    log 'Canon driver packages from supplied archive already installed; skipping'
+    return 0
   fi
   if ! apt_run install -y "${selected[@]}"; then
     rm -rf -- "$tmp"; fail 'Không cài được driver Canon UFR II'; return 1

@@ -40,6 +40,7 @@ grep -q 'fcitx5-unikey' "$ROOT/setup.sh" || fail 'Vietnamese Fcitx input missing
 grep -q -- '--fix-unikey' "$ROOT/setup.sh" || fail 'Unikey repair option missing'
 grep -q -- '--fix-flameshot' "$ROOT/setup.sh" || fail 'Flameshot repair option missing'
 grep -q -- '--canon-ufrii-archive' "$ROOT/setup.sh" || fail 'Canon archive option missing'
+bash "$ROOT/tests/test_canon_repair.sh"
 grep -q 'fonts-crosextra-carlito' "$ROOT/setup.sh" || fail 'Office fonts missing'
 grep -q 'cifs-utils smbclient' "$ROOT/setup.sh" || fail 'SMB tools missing'
 if command -v bash >/dev/null; then bash -n "$ROOT/setup.sh"; fi
