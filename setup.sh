@@ -1090,7 +1090,7 @@ start_flameshot_daemon() {
 }
 
 configure_flameshot_shortcut() {
-  log 'Configuring Flameshot shortcut: Ctrl+Shift+S'
+  log 'Configuring Flameshot shortcut: Ctrl+Alt+S'
   if (( DRY_RUN )); then
     log '+ create user Flameshot launcher/autostart and configure GNOME shortcut'
     return 0
@@ -1145,43 +1145,20 @@ EOF
     warn "Giữ nguyên autostart tự tạo: $autostart"
   fi
   if ! desktop_is_gnome; then
-    warn "Tạo launcher $launcher; tự gán Ctrl+Shift+S trong Keyboard Shortcuts"
+    warn "Tạo launcher $launcher; tự gán Ctrl+Alt+S trong Keyboard Shortcuts"
     return 0
   fi
   command -v gsettings >/dev/null || { warn 'Không có gsettings; hãy tạo phím tắt Flameshot thủ công'; return 0; }
-  local schema='org.gnome.settings-daemon.plugins.media-keys'
-  local legacy_path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/flameshot/'
-  local path='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/namhh-flameshot/'
-  local key_schema='org.gnome.settings-daemon.plugins.media-keys.custom-keybinding'
-  local current legacy_command existing_command
-  current="$(gsettings get "$schema" custom-keybindings 2>/dev/null)" || { warn 'Không đọc được phím tắt GNOME'; return 1; }
-  [[ "$current" == *']' ]] || { warn 'Danh sách phím tắt GNOME không hợp lệ; giữ nguyên'; return 1; }
-  # Keep upgrading the old key only if the command proves that Office Kit owns it.
-  # An unrelated user-defined /flameshot/ key is never replaced by this kit.
-  if [[ "$current" == *"'$legacy_path'"* ]]; then
-    legacy_command="$(gsettings get "$key_schema:$legacy_path" command 2>/dev/null || true)"
-    [[ "$legacy_command" != *ulok-flameshot* ]] || path="$legacy_path"
+  # Safely resolve collisions, backup settings and preserve personal shortcuts.
+  if ! command -v python3 >/dev/null 2>&1; then
+    warn 'Thiếu Python 3, không thể kiểm tra trùng phím tắt GNOME'
+    return 1
   fi
-  if [[ "$current" == *"'$path'"* ]]; then
-    existing_command="$(gsettings get "$key_schema:$path" command 2>/dev/null || true)"
-    if [[ "$existing_command" != *ulok-flameshot* && "$existing_command" != "''" ]]; then
-      warn "Phím tắt $path thuộc cấu hình khác; không ghi đè"
-      return 1
-    fi
+  if ! python3 "$ROOT_DIR/scripts/flameshot-hotkey.py" --launcher "$launcher" >>"$LOG_PATH" 2>&1; then
+    warn 'Ctrl+Alt+S bị trùng phím hoặc GNOME không lưu được; xem setup.log và Settings → Keyboard'
+    return 1
   fi
-  # Keep all existing custom shortcuts; add this path only once.
-  if [[ "$current" != *"'$path'"* ]]; then
-    if [[ "$current" == '@as []' || "$current" == '[]' ]]; then
-      current="['$path']"
-    else
-      current="${current%]}"
-      current="${current}, '$path']"
-    fi
-    gsettings set "$schema" custom-keybindings "$current" || { warn 'Không lưu được danh sách phím tắt'; return 0; }
-  fi
-  gsettings set "$key_schema:$path" name 'Flameshot' && \
-    gsettings set "$key_schema:$path" command "$launcher" && \
-    gsettings set "$key_schema:$path" binding '<Primary><Shift>s' || { warn 'Không gán được Ctrl+Shift+S cho Flameshot'; return 1; }
+  log 'PASS: Ctrl+Alt+S đã kiểm tra trùng và gán cho Flameshot'
   if [[ "${XDG_SESSION_TYPE:-}" == wayland ]]; then
     warn 'GNOME Wayland: nếu Flameshot báo Unable to capture screen, hãy cho phép Share trong portal; thử Ubuntu on Xorg nếu lỗi vẫn tồn tại'
   fi
@@ -1464,7 +1441,7 @@ main() {
       module_canon_auto || warn 'Canon cần kiểm tra thêm; không ảnh hưởng ứng dụng khác'
     fi
     if (( FIX_UNIKEY )); then ui_stage 'Sửa bộ gõ tiếng Việt'; module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
-    if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Shift+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
+    if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Alt+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
     if (( FIX_ZALO || UPDATE_ZALO )); then
       ui_stage 'Zalo Linux AppImage'
       if module_zalo; then
@@ -1512,7 +1489,7 @@ main() {
     # Establish the three user-critical apps before optional Office/media installs.
     ui_stage 'UniKey · bộ gõ tiếng Việt và tự phục hồi phiên'
     module_vietnamese_input || fail 'UniKey chưa được cấu hình; tiếp tục cài các ứng dụng còn lại'
-    ui_stage 'Flameshot · chụp màn hình Ctrl+Shift+S'
+    ui_stage 'Flameshot · chụp màn hình Ctrl+Alt+S'
     module_flameshot || fail 'Flameshot chưa hoàn tất; tiếp tục cài các ứng dụng còn lại'
     if [[ "$PROFILE" == desktop || "$PROFILE" == full ]]; then
       ui_stage 'Zalo Linux · ứng dụng chat'

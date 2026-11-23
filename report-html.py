@@ -24,7 +24,7 @@ APP_GROUPS = (
     )),
     ("Tiếng Việt và chụp màn hình", (
         ("Unikey tiếng Việt", "Gõ tiếng Việt và tự chọn kiểu gõ phù hợp.", ("ibus-daemon", "fcitx5"), ("ibus-unikey", "fcitx5-unikey")),
-        ("Flameshot", "Chụp vùng màn hình bằng Ctrl + Shift + S.", ("flameshot",), ("flameshot",)),
+        ("Flameshot", "Chụp vùng màn hình bằng Ctrl + Alt + S.", ("flameshot",), ("flameshot",)),
         ("Font văn phòng", "Hiển thị chữ tiếng Việt và tài liệu Word đúng hơn.", (), ("fonts-crosextra-carlito", "fonts-liberation2")),
     )),
     ("Liên lạc và Internet", (
@@ -605,7 +605,7 @@ HTML_TEMPLATE = r'''<!doctype html>
         <div><b>Microsoft Word / Excel</b> → WPS Office / LibreOffice</div>
         <div><b>Outlook (Windows)</b> → Microsoft Outlook (Web) · Chrome/Edge/Firefox</div>
         <div><b>Paint</b> → Pinta (nếu kho ứng dụng có gói)</div>
-        <div><b>Windows + Shift + S</b> → Ctrl + Shift + S (Flameshot)</div>
+        <div><b>Windows + Shift + S</b> → Ctrl + Alt + S (Flameshot)</div>
         <div><b>Alt + Tab, Ctrl + C/V, Ctrl + S</b> → dùng giống Windows</div>
         <div><b>Windows Network Drive / NAS</b> → Files → Other Locations → Connect to Server → <code>smb://server/share</code></div>
         <div><b>Windows Backup</b> → Backups; tự chọn nơi lưu bản sao trước khi bật sao lưu định kỳ</div>
