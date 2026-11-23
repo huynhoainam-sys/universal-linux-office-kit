@@ -239,6 +239,11 @@ repair_all_wrong_queues() {
     queue="${line#device for }"; queue="${queue%%:*}"
     is_target_queue "$queue" || continue
     model="$(queue_model "$queue")"
+    if [[ "$model" == "Không đọc được PPD ("* || -z "$model" ]]; then
+      printf '[CHƯA XÁC MINH] %s: không đọc được driver CUPS; không sửa mù.\n' "$queue" >&2
+      (( errors+=1 ))
+      continue
+    fi
     if [[ "${model,,}" == *'hp designjet'* ]]; then
       TARGET_QUEUE="$queue"
       if repair_queue; then (( count+=1 )); else (( errors+=1 )); fi
