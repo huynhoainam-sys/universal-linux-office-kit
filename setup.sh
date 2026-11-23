@@ -20,6 +20,7 @@ FIX_ZALO_LOGIN=0
 REPAIR_DESKTOP=0
 FIX_OFFICE=0
 FIX_OUTLOOK=0
+INSTALL_RUSTDESK=0
 WINDOWS_LIKE=0
 ZALO_VARIANT='chat'
 OFFICE_SECONDARY='auto'
@@ -136,6 +137,7 @@ Usage: ./setup.sh [options]
   --repair-desktop              Repair Vietnamese input, Flameshot GUI and Zalo
   --fix-office                  Check office suites; prefer WPS, keep at most 2 new suites
   --fix-outlook                 Create/repair the Outlook Web launcher (no native .deb)
+  --install-rustdesk            Install verified RustDesk without reinstalling other apps
   --windows-like                Opt in to Windows-style GNOME titlebar buttons
   --zalo-variant chat|full      Zalo package (default: chat; full is legacy)
   --office-secondary auto|libreoffice|genoffice  Second office suite (default: auto)
@@ -973,6 +975,56 @@ module_everyday() {
   install_apt pinta || warn 'Paint tương tự Windows (Pinta) chưa cài được; các app khác vẫn hoạt động'
   install_apt remmina remmina-plugin-rdp remmina-plugin-vnc || true
   module_outlook_web || warn 'Outlook Web launcher chưa sẵn sàng; các ứng dụng khác không bị ảnh hưởng'
+  module_rustdesk || warn 'RustDesk chưa cài được; tiếp tục với các ứng dụng desktop khác'
+}
+
+# Pinned official RustDesk. Do not configure unattended access, passwords or VPN.
+# Vendor .deb can install/start its own systemd service.
+module_rustdesk() {
+  log 'Module: RustDesk remote desktop (verified official release)'
+  if (( SKIP_THIRD_PARTY )); then
+    log 'RustDesk skipped with --skip-third-party'
+    return 0
+  fi
+  if (( ! DRY_RUN )) && package_installed rustdesk; then
+    log 'PASS: RustDesk đã có qua APT; không cài lại'
+    return 0
+  fi
+  # Preserve a user-managed binary/AppImage rather than installing a second copy.
+  if (( ! DRY_RUN )) && command -v rustdesk >/dev/null 2>&1; then
+    warn 'RustDesk đang có ngoài APT; không ghi đè'
+    return 1
+  fi
+  local arch url digest
+  arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
+  case "$arch" in
+    amd64)
+      url='https://github.com/rustdesk/rustdesk/releases/download/1.5.3/rustdesk-1.5.3-x86_64.deb'
+      digest='81096d2f65fd43352540c351bca15bb0712a2a6f9efa4c95e9fff25cb97b3b81'
+      ;;
+    arm64)
+      url='https://github.com/rustdesk/rustdesk/releases/download/1.5.3/rustdesk-1.5.3-aarch64.deb'
+      digest='fa85e8d3ccd45e2e303c2d1359af5dc51aa93d880e39ba47c9b04bfabd82ae19'
+      ;;
+    *)
+      warn "RustDesk 1.5.3 .deb chưa được ghim cho kiến trúc: $arch"
+      return 1
+      ;;
+  esac
+  log "RustDesk 1.5.3 · $arch · tải HTTPS và kiểm tra SHA-256"
+  if ! install_deb_url rustdesk "$url" "$digest"; then
+    warn 'RustDesk chưa cài: xem kết nối GitHub Releases/APT trong setup.log'
+    return 1
+  fi
+  if (( DRY_RUN )); then
+    log 'RustDesk dry-run: không thay đổi gói hoặc dịch vụ'
+    return 0
+  fi
+  if ! package_installed rustdesk || ! command -v rustdesk >/dev/null 2>&1; then
+    warn 'Cài RustDesk chưa hoàn tất: thiếu gói hoặc lệnh'
+    return 1
+  fi
+  log 'PASS: RustDesk đã cài; mở ứng dụng để xem ID và xác nhận phiên hỗ trợ'
 }
 
 module_windows_like() {
@@ -1402,6 +1454,7 @@ main() {
       --repair-desktop) REPAIR_DESKTOP=1; shift ;;
       --fix-office) FIX_OFFICE=1; shift ;;
       --fix-outlook) FIX_OUTLOOK=1; shift ;;
+      --install-rustdesk|--fix-rustdesk) INSTALL_RUSTDESK=1; shift ;;
       --windows-like) WINDOWS_LIKE=1; shift ;;
       --zalo-variant) ZALO_VARIANT="${2:?Missing Zalo variant}"; shift 2 ;;
       --office-secondary) OFFICE_SECONDARY="${2:?Missing office secondary}"; shift 2 ;;
@@ -1429,12 +1482,21 @@ main() {
     return 2
   fi
   require_platform || { write_report; return 1; }
-  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE || FIX_OUTLOOK || SETUP_PRINTERS )); then
-    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + FIX_OUTLOOK + SETUP_PRINTERS + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
+  if (( INSTALL_RUSTDESK && SKIP_THIRD_PARTY )); then
+    fail '--install-rustdesk không dùng chung với --skip-third-party'
+    write_report
+    return 2
+  fi
+  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE || FIX_OUTLOOK || SETUP_PRINTERS || INSTALL_RUSTDESK )); then
+    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + FIX_OUTLOOK + SETUP_PRINTERS + INSTALL_RUSTDESK + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
     ui_stage 'Sao lưu cấu hình trước khi sửa'
     backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
     if (( FIX_OFFICE )); then ui_stage 'Kiểm tra Office · ưu tiên WPS, tối đa 2 bộ'; module_office_suites || fail 'Không thể kiểm tra bộ Office'; fi
     if (( FIX_OUTLOOK )); then ui_stage 'Outlook Microsoft 365 · ứng dụng Web'; module_outlook_web || fail 'Outlook Web launcher chưa hoàn tất'; fi
+    if (( INSTALL_RUSTDESK )); then
+      ui_stage 'RustDesk · điều khiển từ xa'
+      module_rustdesk || fail 'RustDesk chưa cài được; xem setup.log'
+    fi
     if (( SETUP_PRINTERS )); then
       ui_stage 'Driver máy in phổ thông · Canon USB/LAN'
       module_printer_drivers || warn 'Chưa cài đủ driver máy in phổ thông'

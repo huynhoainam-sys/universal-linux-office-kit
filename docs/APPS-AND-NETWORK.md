@@ -8,7 +8,7 @@
 |---|---|---|
 | `minimal` | curl, wget, git, zip/7z, rsync, jq, htop, ncdu, DNS, NetworkManager, UFW (chỉ cài, **không tự bật**), SMB, OpenVPN | Kho APT đang cấu hình |
 | `office` | Nhóm minimal; WPS ưu tiên (tối đa 2 bộ Office), LibreOffice hoặc GenOffice; IBus Unikey GNOME / Fcitx5 Unikey Cinnamon; Flameshot; PDF, scan, CUPS, Thunderbird, font tiếng Việt, VLC/FFmpeg | APT, WPS .deb, GenOffice release có SHA-256 |
-| `desktop` (mặc định) | Nhóm office; **Zalo Linux**, **Outlook Microsoft 365 (Web)**, sao lưu Backups, chia sẻ ổ Windows/NAS, NTFS/exFAT, Remmina, trình giải nén, Files preview, Disk Usage, Disks, Pinta (nếu có), máy tính GNOME | APT + Zalo AppImage; Outlook không tải binary |
+| `desktop` (mặc định) | Nhóm office; **Zalo Linux**, **Outlook Microsoft 365 (Web)**, **RustDesk**, sao lưu Backups, chia sẻ ổ Windows/NAS, NTFS/exFAT, Remmina, trình giải nén, Files preview, Disk Usage, Disks, Pinta (nếu có), máy tính GNOME | APT + Zalo AppImage; Outlook không tải binary |
 | `full` | Nhóm desktop; Chrome, Edge, VS Code, Zoom, Docker, Flatpak, công cụ phát triển, network/diagnostics | Trang hãng HTTPS, kho APT có chữ ký, Flathub |
 
 Tính năng `--windows-like` (tùy chọn): bổ sung nút **minimize / maximize / close** trên thanh tiêu đề cửa sổ GNOME. Có bản sao cấu hình trước khi sửa. Không chạy trên Cinnamon; không tự bật firewall, Remote Desktop, VPN, tự tạo bản sao lưu hay thay giao diện người dùng khi chưa chọn.
@@ -23,6 +23,7 @@ Tính năng `--windows-like` (tùy chọn): bổ sung nút **minimize / maximize
 | GenOffice | GitHub release mới nhất có SHA-256 | Release chính thức đã ghim khi API bị 403 | Không cài nếu thiếu SHA-256 hợp lệ hoặc checksum sai |
 | Chrome, Zoom (profile full) | `curl` qua HTTPS tên miền hãng | `wget` qua cùng nguồn HTTPS | Không dùng mirror không xác minh; hai công cụ không vượt được chặn domain tầng mạng |
 | Edge / VS Code / Docker | Kho APT chính thức của hãng, signed repository | Cache/mirror APT sẵn có theo cấu hình máy | Không tự tạo mirror hoặc bỏ xác minh chữ ký |
+| RustDesk 1.5.3 (amd64/arm64) | `.deb` từ GitHub Releases, ghim SHA-256 theo API chính thức | `wget` cùng URL HTTPS nếu `curl` lỗi | Không dùng mirror không xác minh; không tự đặt mật khẩu truy cập |
 | Outlook Web | `https://outlook.office.com/mail/` | Edge/Chrome → Firefox → trình duyệt hệ thống | Không tải `.deb`, không lưu token/mật khẩu và không tự đăng nhập |
 
 `curl` và `wget` là **hai công cụ/luồng tải dự phòng**, không phải hai đường Internet độc lập. Nếu doanh nghiệp chủ động chặn một domain, cần dùng nguồn được IT cho phép hoặc tệp offline đã xác minh. Bộ cài không tự tắt proxy hay thiết lập đường vòng trái chính sách.
@@ -58,3 +59,11 @@ URL trong ví dụ là địa chỉ mẫu, không phải mirror đang hoạt đ�
 8. Ứng dụng phụ lỗi và một app thiết yếu lỗi → vẫn chạy những app khác, ghi rõ WARN/FAIL.
 
 QA GitHub Actions dùng Ubuntu 22.04 và 24.04. Đây là kiểm tra syntax, **dry-run** và mô phỏng; còn phải nghiệm thu máy desktop thật cho Wayland portal, Canon/driver, tài khoản Outlook và đăng nhập Zalo.
+
+## 5. Cài RustDesk sau khi đã có Office Kit
+
+```bash
+git -C "$HOME/universal-linux-office-kit" pull --ff-only && bash "$HOME/universal-linux-office-kit/setup.sh" --install-rustdesk --yes
+```
+
+Chỉ xử lý RustDesk; không chạy lại Zalo, Office, UniKey, Flameshot hoặc Canon. Bộ cài không chủ động tạo mật khẩu, unattended access, sửa firewall/VPN hay địa chỉ relay. Gói `.deb` từ hãng có thể cài dịch vụ nền. Wayland có thể yêu cầu người dùng đồng ý chia sẻ màn hình; sử dụng sau đăng nhập và kiểm tra kết nối thực tế. [Hướng dẫn Linux](https://rustdesk.com/docs/en/client/linux/).

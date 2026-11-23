@@ -25,6 +25,7 @@ Giao diện đồng bộ **NAMHH / AI Control Center**: Terminal nền navy đ�
 | **Flameshot — Ctrl + Alt + S** | Chụp một vùng màn hình |
 | **Zalo Linux** | Chat bằng ứng dụng desktop; giữ dữ liệu cũ và hỗ trợ nguồn tải thay thế có kiểm tra SHA-256 |
 | **Microsoft Outlook (Web)** | Mở email Microsoft 365 bằng Edge/Chrome hoặc Firefox; có thể cài PWA từ trình duyệt |
+| **RustDesk** | Điều khiển Ubuntu từ Windows/Linux bằng ID; gói `.deb` chính thức có SHA-256 |
 | **Bộ tiện ích dùng hằng ngày** | Giải nén, xem trước tệp, sao lưu tài liệu, mở ổ NTFS/exFAT, chia sẻ Windows/NAS, xem dung lượng ổ đĩa, Remote Desktop |
 | **Báo cáo HTML** | Tự mở trên trình duyệt; giải thích từng ứng dụng bằng tiếng Việt, có hình minh họa |
 
@@ -103,10 +104,10 @@ Các profile:
 
 - `minimal`: sửa APT/dpkg, thư viện nền, công cụ mạng.
 - `office`: minimal + WPS Office (ưu tiên), tối đa một bộ Office khác (mặc định LibreOffice), PDF, scan, Flameshot và bộ gõ tiếng Việt.
-- `desktop` (**mặc định**): office + **Zalo, Outlook Web** + các tiện ích cần cho người chuyển từ Windows; không tự cài Docker, Chrome, Edge hay bộ công cụ lập trình.
+- `desktop` (**mặc định**): office + **Zalo, Outlook Web, RustDesk** + các tiện ích cần cho người chuyển từ Windows; không tự cài Docker, Chrome, Edge hay bộ công cụ lập trình.
 - `full`: desktop + development, Flatpak, Chrome, Edge, VS Code, Docker, Zoom. Muốn thử Zalo bản `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
-Tùy chọn: `--repair-desktop` (bao gồm Office, Outlook Web), `--fix-office`, `--fix-outlook`, `--windows-like`, `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--accept-canon-license`, `--report PATH`, `--yes`.
+Tùy chọn: `--repair-desktop` (bao gồm Office, Outlook Web), `--fix-office`, `--fix-outlook`, `--install-rustdesk`, `--windows-like`, `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--accept-canon-license`, `--report PATH`, `--yes`.
 
 ## App được cài và công dụng
 
@@ -207,6 +208,18 @@ git -C "$HOME/universal-linux-office-kit" pull --ff-only && bash "$HOME/universa
 ```
 
 Chỉ dùng `--accept-canon-license` sau khi đã đọc và đồng ý [giấy phép Canon](https://vn.canon/en/support/0100595001). Lệnh cài driver phổ thông CUPS/IPP, Gutenprint, SPLIX và brlaser từ kho Ubuntu; kiểm tra Canon LBP6230/6240 qua tên hàng đợi CUPS, thông tin USB mà CUPS nhìn thấy và quảng bá IPP/DNS-SD trong mạng cục bộ. Không quét dải IP, không chạm Toshiba hoặc tự tạo hàng đợi không xác minh. Nếu máy chưa có Canon, driver phổ thông vẫn sẵn sàng cho lần kết nối sau. Nếu thiết bị Canon mới được nhận diện nhưng chưa có hàng đợi CUPS, bộ cài chuẩn bị driver và nhắc thêm máy trong **Settings → Printers**. Đối với các máy Canon khác dòng LBP6230/6240, phải chọn đúng driver theo model, không dùng UFRII LT V5.10 một cách tùy tiện.
+
+### Cài RustDesk riêng trên PC đã cài Office Kit
+
+Mở Terminal trong tài khoản đang đăng nhập (không chạy `sudo bash setup.sh`):
+
+```bash
+git -C "$HOME/universal-linux-office-kit" pull --ff-only && bash "$HOME/universal-linux-office-kit/setup.sh" --install-rustdesk --yes
+```
+
+Chỉ cài RustDesk, **không chạy lại** Zalo, UniKey, Flameshot, Office hoặc driver máy in. `desktop`/`full` mặc định cũng cài RustDesk nếu không có `--skip-third-party`. Ghim RustDesk **1.5.3 (09/11/2026)**, kiểm tra SHA-256 theo release GitHub chính thức cho `amd64` và `arm64`; dùng `curl` và nếu lỗi thì thử `wget`. Không cài nếu file sai checksum. Nếu đã có gói APT, bộ cài giữ nguyên phiên bản.
+
+Kit không tạo mật khẩu cố định, không bật chế độ unattended, không cấu hình relay/VPN/firewall. **Gói `.deb` từ hãng có thể tạo hoặc khởi động dịch vụ RustDesk nền**. Trên GNOME Wayland, có thể phải cho phép truy cập màn hình trong phiên đang đăng nhập; khả năng điều khiển màn hình đăng nhập có giới hạn. Sau khi cài, nhấn Super → tìm RustDesk → xem ID và chấp thuận người hỗ trợ tin cậy. [Tài liệu RustDesk chính thức](https://rustdesk.com/docs/en/client/linux/).
 
 ### Cài Canon UFR II
 

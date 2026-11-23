@@ -111,6 +111,13 @@ has_command() { command -v "$1" >/dev/null 2>&1; }
     if has_package "$pkg"; then status "$pkg" PASS 'installed';
     else status "$pkg" WARN 'not installed'; fi
   done
+  if has_package rustdesk && has_command rustdesk; then
+    status 'RustDesk' PASS 'installed via .deb (test interactive remote session)'
+  elif has_command rustdesk; then
+    status 'RustDesk' WARN 'binary available but .deb package not detected'
+  else
+    status 'RustDesk' OPTIONAL 'run ./setup.sh --install-rustdesk --yes'
+  fi
   if [[ -x "${XDG_BIN_HOME:-$HOME/.local/bin}/zalo-linux" ]]; then
     if [[ -x "${XDG_DATA_HOME:-$HOME/.local/share}/zalo-linux/Zalo-x86_64.AppImage" ]]; then
       status 'Zalo Linux' PASS 'launcher and AppImage exist; open GUI to test'
