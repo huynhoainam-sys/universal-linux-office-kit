@@ -198,6 +198,16 @@ Nếu APT không cài được Flameshot (ví dụ máy đang dùng mirror nội
 
 Nếu GNOME hỏi quyền **Share/Chia sẻ màn hình**, chọn cho phép. Trường hợp vẫn hiện `Unable to capture screen`, kiểm tra `echo "$XDG_SESSION_TYPE"` và `bash doctor.sh`. Flameshot trên một số bản GNOME/Wayland có lỗi quyền chụp màn hình từ upstream, nên việc cài đủ gói không bảo đảm hoạt động trên mọi bản Ubuntu. Có thể thử **Ubuntu on Xorg** từ biểu tượng bánh răng ở màn hình đăng nhập nếu tùy chọn này được cài sẵn; không tự đổi session hay quyền bảo mật. Xem [hướng dẫn Wayland chính thức của Flameshot](https://flameshot.org/docs/guide/wayland-help/).
 
+### Cài bổ sung driver máy in sau khi đã hoàn tất Office Kit
+
+Nếu Office Kit đã được cài, chỉ cần chạy **một lệnh** sau đây. Không cài lại các ứng dụng văn phòng, Zalo, UniKey hoặc Flameshot:
+
+```bash
+git -C "$HOME/universal-linux-office-kit" pull --ff-only && bash "$HOME/universal-linux-office-kit/setup.sh" --setup-printers --yes --accept-canon-license
+```
+
+Chỉ dùng `--accept-canon-license` sau khi đã đọc và đồng ý [giấy phép Canon](https://vn.canon/en/support/0100595001). Lệnh cài driver phổ thông CUPS/IPP, Gutenprint, SPLIX và brlaser từ kho Ubuntu; kiểm tra Canon LBP6230/6240 qua tên hàng đợi CUPS, thông tin USB mà CUPS nhìn thấy và quảng bá IPP/DNS-SD trong mạng cục bộ. Không quét dải IP, không chạm Toshiba hoặc tự tạo hàng đợi không xác minh. Nếu máy chưa có Canon, driver phổ thông vẫn sẵn sàng cho lần kết nối sau. Nếu thiết bị Canon mới được nhận diện nhưng chưa có hàng đợi CUPS, bộ cài chuẩn bị driver và nhắc thêm máy trong **Settings → Printers**. Đối với các máy Canon khác dòng LBP6230/6240, phải chọn đúng driver theo model, không dùng UFRII LT V5.10 một cách tùy tiện.
+
 ### Cài Canon UFR II
 
 Tra model máy in trên [Canon Việt Nam](https://vn.canon/en/support), tải gói **UFR II/UFRII LT Printer Driver for Linux** dành cho model của bạn (ví dụ bản V6.40), rồi chạy:
