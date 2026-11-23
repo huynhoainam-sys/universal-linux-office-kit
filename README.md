@@ -216,6 +216,14 @@ cd "$HOME/universal-linux-office-kit"
 bash scripts/fix-canon-lbp6230.sh
 ```
 
+**Cài và sửa toàn bộ Canon LBP6230/6240 bằng một lệnh** (sau khi đọc và đồng ý [giấy phép Canon](https://vn.canon/en/support/0100595001)):
+
+```bash
+bash scripts/fix-canon-lbp6230.sh --full --apply --accept-canon-license
+```
+
+Chế độ này tự thử nguồn chính thức Canon qua **curl → wget** (và URL chuyển hướng chính thức nếu bị chặn), kiểm tra SHA-256 đã xác minh của file V5.10, chỉ cài driver Canon, rồi sửa **tất cả hàng đợi LBP6230/6240 đang dùng nhầm HP Designjet**. Mỗi hàng đợi được sao lưu PPD trước khi thay; **không xóa máy in, không sửa Toshiba, không in tự động**. Nếu máy đã có driver đúng, không tải lại. Log nằm ở `canon-repair.log`; lỗi một hàng đợi không ngăn thử hàng đợi Canon khác.
+
 Tải gói **UFRII LT V5.10** từ trang Canon chính thức trên (đọc và chấp nhận điều khoản của hãng), sau đó cài **chỉ driver Canon**, không cài lại Office/Zalo:
 
 ```bash
