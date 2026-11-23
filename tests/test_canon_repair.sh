@@ -118,17 +118,17 @@ grep -q 'Canon: đã sửa 0 hàng đợi nhầm HP; lỗi 0' "$TEMP/idempotent"
 
 # If the queue exists but PPD cannot be read, fail rather than claiming
 # zero repairs and zero errors. This must not modify Toshiba or any queue.
-printf '%s\n' '*NickName: "HP Designjet T920 PostScript"' > "$TEMP/ppd/LBP6230-6240.ppd"
-printf '%s\n' '*NickName: "HP Designjet T920 PostScript"' > "$TEMP/ppd/LBP6230-6240-2.ppd"
+printf '%s\\n' '*NickName: "HP Designjet T920 PostScript"' > "$TEMP/ppd/LBP6230-6240.ppd"
+printf '%s\\n' '*NickName: "HP Designjet T920 PostScript"' > "$TEMP/ppd/LBP6230-6240-2.ppd"
 rm -f -- "$TEMP/ppd/LBP6230-6240-2.ppd"
 : > "$TEMP/calls"
 if bash "$SCRIPT" --full --apply --accept-canon-license > "$TEMP/missing-ppd" 2>&1; then
   echo 'FAIL: unreadable Canon PPD was accepted as success' >&2
   exit 1
 fi
-grep -Fq '[CHƯA XÁC MINH]' "$TEMP/missing-ppd"
+grep -q '\\[CHƯA XÁC MINH\\]' "$TEMP/missing-ppd"
 ! grep -q 'TOSHIBA' "$TEMP/calls"
-printf '%s\n' '*NickName: "HP Designjet T920 PostScript"' > "$TEMP/ppd/LBP6230-6240-2.ppd"
+printf '%s\\n' '*NickName: "HP Designjet T920 PostScript"' > "$TEMP/ppd/LBP6230-6240-2.ppd"
 
 # Reject a generic UFR II archive; this Canon model needs UFRII LT.
 touch "$TEMP/linux-UFRII-drv-v640-us-01.tar.gz"

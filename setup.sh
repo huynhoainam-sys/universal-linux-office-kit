@@ -11,6 +11,7 @@ SKIP_FLATPAK=0
 SKIP_THIRD_PARTY=0
 CANON_UFRII_ARCHIVE=''
 CANON_LICENSE_ACCEPTED=0
+SETUP_PRINTERS=0
 FIX_UNIKEY=0
 FIX_FLAMESHOT=0
 FIX_ZALO=0
@@ -126,6 +127,7 @@ Usage: ./setup.sh [options]
   --skip-third-party             Do not install GenOffice/Chrome/Edge/VS Code/Docker/Zoom/Zalo
   --canon-ufrii-archive PATH     Install Canon UFR II from official downloaded .tar.gz
   --accept-canon-license        Opt in to automatic Canon LBP6230/6240 driver repair
+  --setup-printers              Install common print drivers and detect Canon
   --fix-unikey                  Repair Vietnamese input without full setup
   --fix-flameshot               Repair Flameshot without full setup
   --fix-zalo                    Repair Zalo, or install it when missing
@@ -525,11 +527,12 @@ module_office() {
   log 'Module: office'
   module_office_suites
   install_apt hunspell-vi hyphen-vi mythes-vi evince poppler-utils \
-    simple-scan cups system-config-printer || true
+    simple-scan cups cups-client cups-ipp-utils system-config-printer || true
   install_apt thunderbird pdfarranger || true
   install_apt fonts-crosextra-carlito fonts-crosextra-caladea \
     fonts-liberation2 fonts-noto-color-emoji || true
   configure_office_fonts
+  module_printer_drivers || warn 'Một số driver máy in phổ thông không khả dụng'
   module_canon_ufrii || true
   module_canon_auto || warn 'Canon: chưa hoàn tất; các ứng dụng Office khác không bị ảnh hưởng'
 }
@@ -898,9 +901,13 @@ module_canon_ufrii() {
 # Detect its exact printer family first; never download a vendor driver on a
 # machine without that printer. License opt-in is explicit and independent of
 # --yes, which only controls confirmation for the Office Kit itself.
+module_printer_drivers() {
+  log 'Module: common printer drivers'
+  install_apt cups cups-client cups-ipp-utils printer-driver-gutenprint printer-driver-splix printer-driver-brlaser || return 1
+}
+
 canon_lbp6230_present() {
-  command -v lpstat >/dev/null 2>&1 || return 1
-  lpstat -v 2>/dev/null | grep -Eq '^device for LBP6230[-_]6240([-_][0-9]+)?: '
+  bash "$ROOT_DIR/scripts/printer-discovery.sh" >/dev/null 2>&1
 }
 
 run_canon_helper() {
@@ -1399,6 +1406,7 @@ main() {
       --skip-third-party) SKIP_THIRD_PARTY=1; shift ;;
       --canon-ufrii-archive) CANON_UFRII_ARCHIVE="${2:?Missing Canon archive path}"; shift 2 ;;
       --accept-canon-license) CANON_LICENSE_ACCEPTED=1; shift ;;
+      --setup-printers) SETUP_PRINTERS=1; shift ;;
       --fix-unikey) FIX_UNIKEY=1; shift ;;
       --fix-flameshot) FIX_FLAMESHOT=1; shift ;;
       --fix-zalo) FIX_ZALO=1; shift ;;
@@ -1434,12 +1442,17 @@ main() {
     return 2
   fi
   require_platform || { write_report; return 1; }
-  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE || FIX_OUTLOOK )); then
-    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + FIX_OUTLOOK + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
+  if (( FIX_UNIKEY || FIX_FLAMESHOT || FIX_ZALO || UPDATE_ZALO || FIX_OFFICE || FIX_OUTLOOK || SETUP_PRINTERS )); then
+    UI_TOTAL=$((2 + FIX_UNIKEY + FIX_FLAMESHOT + FIX_OFFICE + FIX_OUTLOOK + SETUP_PRINTERS + ((FIX_ZALO || UPDATE_ZALO) ? 1 : 0) + FIX_ZALO_LOGIN))
     ui_stage 'Sao lưu cấu hình trước khi sửa'
     backup_desktop_settings || { fail 'Không sao lưu được cấu hình desktop'; write_report; return 1; }
     if (( FIX_OFFICE )); then ui_stage 'Kiểm tra Office · ưu tiên WPS, tối đa 2 bộ'; module_office_suites || fail 'Không thể kiểm tra bộ Office'; fi
     if (( FIX_OUTLOOK )); then ui_stage 'Outlook Microsoft 365 · ứng dụng Web'; module_outlook_web || fail 'Outlook Web launcher chưa hoàn tất'; fi
+    if (( SETUP_PRINTERS )); then
+      ui_stage 'Driver máy in phổ thông · Canon USB/LAN'
+      module_printer_drivers || warn 'Chưa cài đủ driver máy in phổ thông'
+      module_canon_auto || warn 'Canon cần kiểm tra thêm; không ảnh hưởng ứng dụng khác'
+    fi
     if (( FIX_UNIKEY )); then ui_stage 'Sửa bộ gõ tiếng Việt'; module_vietnamese_input || fail 'Sửa bộ gõ tiếng Việt thất bại'; fi
     if (( FIX_FLAMESHOT )); then ui_stage 'Flameshot GUI · Ctrl+Shift+S'; module_flameshot || fail 'Sửa Flameshot thất bại'; fi
     if (( FIX_ZALO || UPDATE_ZALO )); then
