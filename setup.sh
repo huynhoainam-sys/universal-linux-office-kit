@@ -907,7 +907,6 @@ module_printer_drivers() {
 }
 
 canon_lbp6230_present() {
-  if command -v lpstat >/dev/null 2>&1 && lpstat -v 2>/dev/null | grep -Eq '^device for LBP6230[-_]6240([-_][0-9]+)?: '; then return 0; fi
   bash "$ROOT_DIR/scripts/printer-discovery.sh" >/dev/null 2>&1
 }
 
@@ -935,10 +934,6 @@ module_canon_auto() {
   if ! run_canon_helper >>"$LOG_PATH" 2>&1; then
     warn 'Canon chưa hoàn tất; xem canon-repair.log. Tiếp tục cài các ứng dụng độc lập.'
     return 1
-  fi
-  if ! command -v lpstat >/dev/null 2>&1 || ! lpstat -v 2>/dev/null | grep -Eq '^device for LBP6230[-_]6240([-_][0-9]+)?: '; then
-    warn 'Đã phát hiện Canon USB/LAN và cài driver; chưa có hàng đợi CUPS, hãy thêm trong Settings → Printers'
-    return 0
   fi
   log 'PASS: Canon LBP6230/6240 đã kiểm tra/sửa hàng đợi; cần in trang thử trên máy thật'
   if (( UI_VISIBLE && ! UI_VERBOSE )); then

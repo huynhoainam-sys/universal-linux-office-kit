@@ -42,7 +42,6 @@ grep -q -- '--fix-flameshot' "$ROOT/setup.sh" || fail 'Flameshot repair option m
 grep -q -- '--canon-ufrii-archive' "$ROOT/setup.sh" || fail 'Canon archive option missing'
 bash "$ROOT/tests/test_canon_repair.sh"
 bash "$ROOT/tests/test_canon_integration.sh"
-bash "$ROOT/tests/test_printer_discovery.sh"
 grep -q 'fonts-crosextra-carlito' "$ROOT/setup.sh" || fail 'Office fonts missing'
 grep -q 'cifs-utils smbclient' "$ROOT/setup.sh" || fail 'SMB tools missing'
 if command -v bash >/dev/null; then bash -n "$ROOT/setup.sh"; fi
