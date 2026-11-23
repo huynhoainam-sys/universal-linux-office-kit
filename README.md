@@ -12,6 +12,8 @@ bash -c 'set -Eeuo pipefail; command -v git >/dev/null || { sudo apt-get update 
 
 Script tự kiểm tra và bỏ qua phần đã có. Không cần tải Zalo riêng hay thêm phần mềm để hiện giao diện Terminal.
 
+**Máy có Canon LBP6230/6240:** trước khi chạy, đọc [giấy phép Canon UFRII LT V5.10](https://vn.canon/en/support/0100595001). Nếu đồng ý, thêm `--accept-canon-license` vào cuối **chính dòng cài Office Kit trên** (sau `--yes`). Trong cùng một lần chạy, đến bước Office/máy in, bộ cài sẽ nhận diện Canon, tải driver chính hãng qua `curl`/`wget`, kiểm tra SHA-256 và sửa các hàng đợi đang gán nhầm HP. Không phát hiện Canon thì bỏ qua hoàn toàn. Không có cờ này, bộ cài chỉ cảnh báo và không tự tải driver Canon hoặc thay đổi hàng đợi.
+
 Terminal hiển thị nhận diện **NAMHH · huynhoainam@gmail.com**, từng bước có số thứ tự, % và trạng thái **Hoàn tất / Lưu ý / Cần kiểm tra**. Các dòng kỹ thuật APT/installer được ghi vào `setup.log`, chỉ hiện trong Terminal khi chọn `--verbose`. Cuối lượt tự mở báo cáo HTML có minh họa **Quick Settings → Power → Log Out… / Restart…** của Ubuntu GNOME.
 
 Giao diện đồng bộ **NAMHH / AI Control Center**: Terminal nền navy đậm, chữ xanh lam/cyan và nhấn tím dịu; báo cáo HTML như một dashboard công nghệ với thẻ trạng thái, viền sáng nhẹ và icon SVG chuẩn. Hoàn toàn **offline**, không tải font/ảnh, CDN hoặc JavaScript; mở nhanh với Firefox hay trình duyệt mặc định Ubuntu. Mọi số liệu báo cáo lấy từ kiểm tra máy, không phải thông số trang trí. [Xem quy tắc thiết kế và thuật ngữ](docs/DESIGN-RULES.md).
@@ -104,7 +106,7 @@ Các profile:
 - `desktop` (**mặc định**): office + **Zalo, Outlook Web** + các tiện ích cần cho người chuyển từ Windows; không tự cài Docker, Chrome, Edge hay bộ công cụ lập trình.
 - `full`: desktop + development, Flatpak, Chrome, Edge, VS Code, Docker, Zoom. Muốn thử Zalo bản `full` legacy: `--zalo-variant full` (phụ thuộc upstream còn phát hành bản này).
 
-Tùy chọn: `--repair-desktop` (bao gồm Office, Outlook Web), `--fix-office`, `--fix-outlook`, `--windows-like`, `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--report PATH`, `--yes`.
+Tùy chọn: `--repair-desktop` (bao gồm Office, Outlook Web), `--fix-office`, `--fix-outlook`, `--windows-like`, `--office-secondary auto|libreoffice|genoffice`, `--fix-unikey`, `--fix-flameshot`, `--fix-zalo`, `--fix-zalo-login`, `--update-zalo`, `--zalo-variant chat|full`, `--dry-run`, `--profile`, `--no-reboot`, `--skip-flatpak`, `--skip-third-party`, `--canon-ufrii-archive PATH`, `--accept-canon-license`, `--report PATH`, `--yes`.
 
 ## App được cài và công dụng
 
@@ -129,6 +131,7 @@ Tùy chọn: `--repair-desktop` (bao gồm Office, Outlook Web), `--fix-office`,
 | Hunspell/Hyphen/MyThes tiếng Việt | Kiểm tra chính tả, ngắt dòng và từ điển |
 | Evince, Poppler | Đọc, trích xuất và xử lý PDF |
 | Simple Scan, CUPS, System Config Printer | Scan và cài máy in |
+| Canon LBP6230/6240 UFRII LT V5.10 | Tự nhận diện và sửa driver nhầm HP trong bước Office/máy in nếu người dùng chọn `--accept-canon-license`. Không ảnh hưởng máy in Toshiba. |
 | IBus Unikey / Fcitx5 Unikey | Bộ gõ tiếng Việt: Cinnamon dùng Fcitx5; Ubuntu GNOME dùng IBus. Kit đưa Unikey vào vị trí ưu tiên; đăng xuất/đăng nhập lại, rồi tùy chỉnh kiểu gõ. |
 | Canon UFR II/UFRII LT | Driver in Canon tùy chọn; tải đúng gói `.tar.gz` chính thức của model rồi truyền `--canon-ufrii-archive PATH`. Script cài các gói Debian đúng kiến trúc; thêm máy in sau trong cấu hình máy in. |
 | VLC, FFmpeg | Phát và chuyển đổi âm thanh/video |

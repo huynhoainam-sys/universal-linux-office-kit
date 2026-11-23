@@ -10,6 +10,7 @@ ENABLE_UFW=0
 SKIP_FLATPAK=0
 SKIP_THIRD_PARTY=0
 CANON_UFRII_ARCHIVE=''
+CANON_LICENSE_ACCEPTED=0
 FIX_UNIKEY=0
 FIX_FLAMESHOT=0
 FIX_ZALO=0
@@ -124,6 +125,7 @@ Usage: ./setup.sh [options]
   --skip-flatpak                 Do not install Flatpak packages
   --skip-third-party             Do not install GenOffice/Chrome/Edge/VS Code/Docker/Zoom/Zalo
   --canon-ufrii-archive PATH     Install Canon UFR II from official downloaded .tar.gz
+  --accept-canon-license        Opt in to automatic Canon LBP6230/6240 driver repair
   --fix-unikey                  Repair Vietnamese input without full setup
   --fix-flameshot               Repair Flameshot without full setup
   --fix-zalo                    Repair Zalo, or install it when missing
@@ -529,6 +531,7 @@ module_office() {
     fonts-liberation2 fonts-noto-color-emoji || true
   configure_office_fonts
   module_canon_ufrii || true
+  module_canon_auto || warn 'Canon: chưa hoàn tất; các ứng dụng Office khác không bị ảnh hưởng'
 }
 
 module_genoffice() {
@@ -889,6 +892,46 @@ module_canon_ufrii() {
   fi
   rm -rf -- "$tmp"
   log 'Canon UFR II installed; add printer through system-config-printer'
+}
+
+# The Canon repair is an optional part of the normal office/desktop/full flow.
+# Detect its exact printer family first; never download a vendor driver on a
+# machine without that printer. License opt-in is explicit and independent of
+# --yes, which only controls confirmation for the Office Kit itself.
+canon_lbp6230_present() {
+  command -v lpstat >/dev/null 2>&1 || return 1
+  lpstat -v 2>/dev/null | grep -Eq '^device for LBP6230[-_]6240([-_][0-9]+)?: '
+}
+
+run_canon_helper() {
+  bash "$ROOT_DIR/scripts/fix-canon-lbp6230.sh" --full --apply --accept-canon-license
+}
+
+module_canon_auto() {
+  if (( DRY_RUN )); then
+    log '+ Canon LBP6230/6240 auto-detect (dry-run; no download/queue changes)'
+    return 0
+  fi
+  if ! canon_lbp6230_present; then
+    log 'Canon LBP6230/6240: không phát hiện máy; bỏ qua tải driver'
+    return 0
+  fi
+  if (( ! CANON_LICENSE_ACCEPTED )); then
+    warn 'Phát hiện Canon LBP6230/6240; thêm --accept-canon-license để cài/sửa tự động cùng Office Kit'
+    return 0
+  fi
+  log 'Canon LBP6230/6240: cài driver UFRII LT V5.10 và sửa hàng đợi cùng Office Kit'
+  if (( UI_VISIBLE && ! UI_VERBOSE )); then
+    ui_paint "$UI_CYAN" '    ↳ Canon LBP6230/6240 · tải driver chính hãng, kiểm tra và sửa hàng đợi'
+  fi
+  if ! run_canon_helper >>"$LOG_PATH" 2>&1; then
+    warn 'Canon chưa hoàn tất; xem canon-repair.log. Tiếp tục cài các ứng dụng độc lập.'
+    return 1
+  fi
+  log 'PASS: Canon LBP6230/6240 đã kiểm tra/sửa hàng đợi; cần in trang thử trên máy thật'
+  if (( UI_VISIBLE && ! UI_VERBOSE )); then
+    ui_paint "$UI_GREEN" '    ✓ Canon LBP6230/6240 · hoàn tất kiểm tra/sửa driver'
+  fi
 }
 
 module_media() {
@@ -1355,6 +1398,7 @@ main() {
       --skip-flatpak) SKIP_FLATPAK=1; shift ;;
       --skip-third-party) SKIP_THIRD_PARTY=1; shift ;;
       --canon-ufrii-archive) CANON_UFRII_ARCHIVE="${2:?Missing Canon archive path}"; shift 2 ;;
+      --accept-canon-license) CANON_LICENSE_ACCEPTED=1; shift ;;
       --fix-unikey) FIX_UNIKEY=1; shift ;;
       --fix-flameshot) FIX_FLAMESHOT=1; shift ;;
       --fix-zalo) FIX_ZALO=1; shift ;;
